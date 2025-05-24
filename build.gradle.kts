@@ -10,7 +10,33 @@ repositories {
 }
 
 kotlin {
+
     jvmToolchain(19)
     jvm()
-    mingwX64()
+
+
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+                implementation("io.github.oshai:kotlin-logging:7.0.7")
+            }
+        }
+
+        val mingwX64Main by creating {
+            dependencies {
+                implementation("io.github.oshai:kotlin-logging-mingwx64:7.0.7")
+            }
+        }
+    }
+
+
+    mingwX64 {
+        binaries {
+            executable {
+                this.debuggable = true
+                entryPoint("main")
+            }
+        }
+    }
 }
