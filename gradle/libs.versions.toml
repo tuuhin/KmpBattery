@@ -1,13 +1,16 @@
 [versions]
-agp = "8.10.0"
+activityComposeVersion = "1.10.1"
+agp = "8.7.2"
 kotlin = "2.1.21"
 coreKtx = "1.16.0"
 coroutines = "1.10.2"
 android-minSdk = "24"
-android-compileSdk = "36"
+android-compileSdk = "35"
 kotlin-logging = "7.0.7"
+compose = "1.8.1"
 
 [libraries]
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityComposeVersion" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -16,3 +19,6 @@ kotlin-logging = { module = "io.github.oshai:kotlin-logging", version.ref = "kot
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+androidx-compose = { id = "org.jetbrains.compose", version.ref = "compose" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+androidx-application = { id = "com.android.application", version.ref = "agp" }
