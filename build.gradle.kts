@@ -1,42 +1,71 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
-    kotlin("multiplatform") version "2.1.20"
+    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.androidLibrary)
 }
 
 group = "com.sam.kmp_battery"
 version = "1.0-SNAPSHOT"
 
-repositories {
-    mavenCentral()
-}
-
 kotlin {
 
-    jvmToolchain(19)
-    jvm()
+    androidTarget {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
 
-
-    sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
-                implementation("io.github.oshai:kotlin-logging:7.0.7")
+    mingwX64 {
+        binaries {
+            executable {
+                debuggable = true
+                entryPoint("main")
             }
         }
+    }
 
-        val mingwX64Main by creating {
-            dependencies {
-                implementation("io.github.oshai:kotlin-logging-mingwx64:7.0.7")
+    linuxX64 {
+        binaries {
+            executable {
+                debuggable = true
+                entryPoint("main")
             }
         }
     }
 
 
-    mingwX64 {
-        binaries {
-            executable {
-                this.debuggable = true
-                entryPoint("main")
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation(libs.kotlinx.coroutines)
+                implementation(libs.kotlin.logging)
             }
         }
+        commonTest {
+            dependencies {
+                implementation(libs.kotlin.test)
+            }
+        }
+
+        androidMain {
+            dependencies {
+                implementation(libs.androidx.core.ktx)
+            }
+        }
+    }
+}
+
+android {
+    namespace = "com.sam.kmp_battery"
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
+
+    defaultConfig {
+        minSdk = libs.versions.android.minSdk.get().toInt()
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
