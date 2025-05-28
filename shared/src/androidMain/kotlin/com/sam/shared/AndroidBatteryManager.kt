@@ -19,7 +19,7 @@ import kotlin.coroutines.suspendCoroutine
 
 private val logger = KotlinLogging.logger { "AndroidBatteryManager" }
 
-class AndroidBatteryManagerImpl(private val context: Context) : BatteryManager {
+class AndroidBatteryManager(private val context: Context) : BatteryManager {
 
 	private val filter: IntentFilter
 		get() = IntentFilter().apply {
@@ -41,8 +41,8 @@ class AndroidBatteryManagerImpl(private val context: Context) : BatteryManager {
 				return@suspendCoroutine
 			}
 
-			val level: Int = intent.getIntExtra(AndroidBatteryManager.EXTRA_LEVEL, -1)
-			val scale: Int = intent.getIntExtra(AndroidBatteryManager.EXTRA_SCALE, -1)
+			val level: Int = intent.getIntExtra(AndroidOSBatteryManager.EXTRA_LEVEL, -1)
+			val scale: Int = intent.getIntExtra(AndroidOSBatteryManager.EXTRA_SCALE, -1)
 
 			val batteryLevel = (level * 100f / scale).coerceIn(0f..100f).toInt()
 			logger.debug { "BATTERY LEVEL FOUND :$batteryLevel" }
@@ -95,7 +95,6 @@ class AndroidBatteryManagerImpl(private val context: Context) : BatteryManager {
 				}
 			}
 
-			logger.debug { "RECEIVER ADDED" }
 			ContextCompat.registerReceiver(
 				context,
 				receiver,
@@ -104,7 +103,6 @@ class AndroidBatteryManagerImpl(private val context: Context) : BatteryManager {
 			)
 
 			awaitClose {
-				logger.debug { "REMOVING RECEIVER " }
 				context.unregisterReceiver(receiver)
 			}
 		}

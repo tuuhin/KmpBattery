@@ -158,7 +158,7 @@ private fun createWindowProcedure(window: HWND?, msg: UInt, wParam: WPARAM, lPar
         WM_DESTROY -> {
             // the window is destroyed so remove all the registered notification
             hPowerNotification?.let {
-                UnregisterPowerSettingNotification(it);
+                UnregisterPowerSettingNotification(it)
                 hPowerNotification = null
             }
             hPowerACDCNotification?.let {
@@ -166,8 +166,8 @@ private fun createWindowProcedure(window: HWND?, msg: UInt, wParam: WPARAM, lPar
                 hPowerACDCNotification = null
             }
             hSaverModeNotification?.let {
-                UnregisterPowerSettingNotification(it);
-                hSaverModeNotification = null;
+                UnregisterPowerSettingNotification(it)
+                hSaverModeNotification = null
             }
             PostQuitMessage(0)
             logger.info { "WINDOW PROCEDURE DESTROYED UNREGISTERING ALL THE NOTIFICATIONS" }

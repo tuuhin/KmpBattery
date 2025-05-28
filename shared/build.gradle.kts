@@ -16,7 +16,7 @@ kotlin {
 		commonMain {
 			dependencies {
 				implementation(libs.kotlinx.coroutines)
-				implementation(libs.kotlin.logging)
+				api(libs.kotlin.logging)
 			}
 		}
 		commonTest {
@@ -30,5 +30,9 @@ kotlin {
 				implementation(libs.androidx.core.ktx)
 			}
 		}
+	}
+
+	compilerOptions {
+		freeCompilerArgs.set(freeCompilerArgs.get() + "-Xexpect-actual-classes")
 	}
 }

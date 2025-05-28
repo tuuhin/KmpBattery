@@ -25,70 +25,74 @@ import platform.windows.SYSTEM_POWER_STATUS
 @OptIn(ExperimentalForeignApi::class)
 class MingwBatteryManager : BatteryManager {
 
-    private fun canCheckBatteryStatus(lpStatus: LPSYSTEM_POWER_STATUS) = GetSystemPowerStatus(lpStatus) != 0
+	private fun canCheckBatteryStatus(lpStatus: LPSYSTEM_POWER_STATUS) =
+		GetSystemPowerStatus(lpStatus) != 0
 
-    private fun isBatteryStatusOk(lpStatus: LPSYSTEM_POWER_STATUS): Boolean {
-        val batteryFlag = lpStatus.pointed.BatteryFlag.toInt()
-        val lifePercentage = lpStatus.pointed.BatteryLifePercent.toUInt()
-        return batteryFlag != BATTERY_FLAG_UNKNOWN && lifePercentage != BATTERY_LIFE_UNKNOWN
-    }
+	private fun isBatteryStatusOk(lpStatus: LPSYSTEM_POWER_STATUS): Boolean {
+		val batteryFlag = lpStatus.pointed.BatteryFlag.toInt()
+		val lifePercentage = lpStatus.pointed.BatteryLifePercent.toUInt()
+		return batteryFlag != BATTERY_FLAG_UNKNOWN && lifePercentage != BATTERY_LIFE_UNKNOWN
+	}
 
-    override suspend fun batteryLevel(): Int {
-        return withContext(Dispatchers.IO) {
-            memScoped {
-                val status = alloc<SYSTEM_POWER_STATUS>()
-                if (!canCheckBatteryStatus(status.ptr) || !isBatteryStatusOk(status.ptr)) {
-                    return@memScoped -1
-                }
-                status.BatteryLifePercent.toInt()
-            }
-        }
-    }
+	override suspend fun batteryLevel(): Int {
+		return withContext(Dispatchers.IO) {
+			memScoped {
+				val status = alloc<SYSTEM_POWER_STATUS>()
+				if (!canCheckBatteryStatus(status.ptr) || !isBatteryStatusOk(status.ptr)) {
+					return@memScoped -1
+				}
+				if (status.BatteryLifePercent.toInt() !in 0..100) return@withContext -1
+				status.BatteryLifePercent.toInt()
+			}
+		}
+	}
 
-    override suspend fun isBatteryInPowerSavingMode(): Boolean {
-        return withContext(Dispatchers.IO) {
-            memScoped {
-                val status = alloc<SYSTEM_POWER_STATUS>()
-                if (!canCheckBatteryStatus(status.ptr) || !isBatteryStatusOk(status.ptr)) {
-                    return@memScoped false
-                }
-                status.Reserved1.toInt() == 1
-            }
-        }
-    }
+	override suspend fun isBatteryInPowerSavingMode(): Boolean {
+		return withContext(Dispatchers.IO) {
+			memScoped {
+				val status = alloc<SYSTEM_POWER_STATUS>()
+				if (!canCheckBatteryStatus(status.ptr) || !isBatteryStatusOk(status.ptr)) {
+					return@memScoped false
+				}
+				status.Reserved1.toInt() == 1
+			}
+		}
+	}
 
-    override suspend fun batteryState(): BatteryState {
-        return withContext(Dispatchers.IO) {
-            memScoped {
-                val status = alloc<SYSTEM_POWER_STATUS>()
-                // if any status is not found, then nothing
-                if (!canCheckBatteryStatus(status.ptr) || !isBatteryStatusOk(status.ptr)) return@memScoped BatteryState.Unknown
-                // there may not be any battery at all in the system
-                if (status.BatteryFlag.toInt() and BATTERY_FLAG_NO_BATTERY != 0) return@memScoped BatteryState.NoBatteryFound
+	override suspend fun batteryState(): BatteryState {
+		return withContext(Dispatchers.IO) {
+			memScoped {
+				val status = alloc<SYSTEM_POWER_STATUS>()
+				// if any status is not found, then nothing
+				if (!canCheckBatteryStatus(status.ptr) || !isBatteryStatusOk(status.ptr)) return@memScoped BatteryState.Unknown
+				// there may not be any battery at all in the system
+				if (status.BatteryFlag.toInt() and BATTERY_FLAG_NO_BATTERY != 0) return@memScoped BatteryState.NoBatteryFound
 
-                val amount = status.BatteryLifePercent.toFloat()
-                if (status.ACLineStatus.toInt() != 1) return@memScoped BatteryState.DisCharging(amount)
+				val amount = status.BatteryLifePercent.toFloat()
+				if (amount == 100f) return@memScoped BatteryState.Full
 
-                if (status.BatteryFlag.toInt() and BATTERY_FLAG_CHARGING != 0) BatteryState.Charging(amount)
-                else if (amount == 100f) BatteryState.Full
-                //
-                else BatteryState.Unknown
-            }
-        }
-    }
+				if (status.ACLineStatus.toInt() != 1)
+					return@memScoped BatteryState.DisCharging(amount)
 
-    override val batteryStateFlow: Flow<BatteryState>
-        get() = callbackFlow {
-            val handle = createNewThreadAndStartObserver {
-                launch {
-                    val newValue = batteryState()
-                    send(newValue)
-                }
-            }
-            awaitClose {
-                stopObserverAndCloseThread(handle)
-            }
-        }.flowOn(Dispatchers.IO)
+				if (status.BatteryFlag.toInt() and BATTERY_FLAG_CHARGING != 0)
+					return@memScoped BatteryState.Charging(amount)
+				//
+				BatteryState.Unknown
+			}
+		}
+	}
 
-            .distinctUntilChanged()
+	override val batteryStateFlow: Flow<BatteryState>
+		get() = callbackFlow {
+			val handle = createNewThreadAndStartObserver {
+				launch {
+					val newValue = batteryState()
+					send(newValue)
+				}
+			}
+			awaitClose {
+				stopObserverAndCloseThread(handle)
+			}
+		}.flowOn(Dispatchers.IO)
+			.distinctUntilChanged()
 }

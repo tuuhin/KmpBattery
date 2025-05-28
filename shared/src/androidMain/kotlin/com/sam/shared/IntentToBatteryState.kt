@@ -3,7 +3,7 @@ package com.sam.shared
 import android.content.Intent
 import android.os.BatteryManager
 
-typealias AndroidBatteryManager = BatteryManager
+typealias AndroidOSBatteryManager = BatteryManager
 
 fun Intent.toBatteryState(): BatteryState? {
 
@@ -16,19 +16,19 @@ fun Intent.toBatteryState(): BatteryState? {
 
 	if (action !in batteryActions) return null
 
-	val status: Int = getIntExtra(AndroidBatteryManager.EXTRA_STATUS, -1)
-	val level: Int = getIntExtra(AndroidBatteryManager.EXTRA_LEVEL, -1)
-	val scale: Int = getIntExtra(AndroidBatteryManager.EXTRA_SCALE, -1)
+	val status: Int = getIntExtra(AndroidOSBatteryManager.EXTRA_STATUS, -1)
+	val level: Int = getIntExtra(AndroidOSBatteryManager.EXTRA_LEVEL, -1)
+	val scale: Int = getIntExtra(AndroidOSBatteryManager.EXTRA_SCALE, -1)
 
 	val batteryLevel = level * 100f / scale
 
 	return when (status) {
-		AndroidBatteryManager.BATTERY_STATUS_FULL -> BatteryState.Full
-		AndroidBatteryManager.BATTERY_STATUS_CHARGING -> BatteryState.Charging(batteryLevel)
-		AndroidBatteryManager.BATTERY_STATUS_DISCHARGING ->
+		AndroidOSBatteryManager.BATTERY_STATUS_FULL -> BatteryState.Full
+		AndroidOSBatteryManager.BATTERY_STATUS_CHARGING -> BatteryState.Charging(batteryLevel)
+		AndroidOSBatteryManager.BATTERY_STATUS_DISCHARGING ->
 			BatteryState.DisCharging(batteryLevel)
 
-		AndroidBatteryManager.BATTERY_STATUS_UNKNOWN -> BatteryState.Unknown
+		AndroidOSBatteryManager.BATTERY_STATUS_UNKNOWN -> BatteryState.Unknown
 		else -> BatteryState.NoBatteryFound
 	}
 }

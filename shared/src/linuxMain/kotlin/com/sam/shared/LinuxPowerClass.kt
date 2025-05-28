@@ -1,4 +1,4 @@
-package com.sam.kmp_battery
+package com.sam.shared
 
 enum class LinuxPowerClass(val type: String, val folderName: String) {
     BATTERY("Battery", "battery"),

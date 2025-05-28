@@ -1,4 +1,4 @@
-package com.sam.kmp_battery
+package com.sam.shared
 
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.ExperimentalForeignApi
