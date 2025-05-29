@@ -4,15 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sam.shared.BatteryManagerFactory
+import com.sam.shared.BatteryState
 
 class MainActivity : ComponentActivity() {
+
+	val batteryState by lazy { BatteryManagerFactory(applicationContext).createProvider() }
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -20,13 +20,8 @@ class MainActivity : ComponentActivity() {
 
 		setContent {
 			Surface {
-				Column(
-					modifier = Modifier.fillMaxSize(),
-					verticalArrangement = Arrangement.Center,
-					horizontalAlignment = Alignment.CenterHorizontally
-				) {
-					Text("Hello world")
-				}
+				val state by batteryState.batteryStateFlow.collectAsStateWithLifecycle(BatteryState.Unknown)
+				BatteryScreen(state = state)
 			}
 		}
 	}

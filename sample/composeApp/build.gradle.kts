@@ -16,6 +16,8 @@ kotlin {
 				implementation(compose.runtime)
 				implementation(compose.foundation)
 				implementation(compose.material3)
+				implementation(compose.uiTooling)
+				implementation(project(":shared"))
 			}
 		}
 
@@ -47,11 +49,7 @@ android {
 		sourceCompatibility = JavaVersion.VERSION_19
 		targetCompatibility = JavaVersion.VERSION_19
 	}
-
-	buildFeatures {
-		compose = true
-		buildConfig = true
-	}
+	
 	packaging {
 		resources {
 			excludes += "/META-INF/{AL2.0,LGPL2.1}"
