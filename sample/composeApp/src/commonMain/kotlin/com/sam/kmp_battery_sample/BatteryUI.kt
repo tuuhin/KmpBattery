@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -21,9 +20,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.tooling.preview.datasource.CollectionPreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sam.shared.BatteryState
@@ -106,25 +102,5 @@ fun BatteryUI(
 			},
 			style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp)
 		)
-	}
-}
-
-private class BatteryStatePreviewParams : CollectionPreviewParameterProvider<BatteryState>(
-	listOf(
-		BatteryState.DisCharging(10f),
-		BatteryState.Charging(40f),
-		BatteryState.Full,
-		BatteryState.Unknown
-	)
-)
-
-@Preview
-@Composable
-private fun BatteryScreenPreview(
-	@PreviewParameter(BatteryStatePreviewParams::class)
-	state: BatteryState
-) {
-	Surface {
-		BatteryUI(state)
 	}
 }
