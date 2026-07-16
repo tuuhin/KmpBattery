@@ -30,6 +30,9 @@ actual class BatteryManagerFactory {
 				withContext(Dispatchers.IO) { native.batteryState().toBatteryState() }
 
 			override val batteryStateFlow: Flow<BatteryState> = callbackFlow {
+
+				trySend(batteryState())
+
 				val handle = native.subscribedToBatteryState(
 					onFull = { trySend(BatteryState.Full) },
 					onCharging = { trySend(BatteryState.Charging(it)) },

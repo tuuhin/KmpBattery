@@ -32,6 +32,9 @@ actual class BatteryManagerFactory {
 				get() {
 					val manager = NativeBatteryManagerImpl()
 					return callbackFlow {
+
+						trySend(manager.batteryState().toBatteryState())
+
 						val handle = manager.subscribedToBatteryState(
 							onFull = { trySend(BatteryState.Full) },
 							onCharging = { trySend(BatteryState.Charging(it)) },
