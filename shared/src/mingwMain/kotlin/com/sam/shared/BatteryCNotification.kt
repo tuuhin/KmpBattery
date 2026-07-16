@@ -58,216 +58,210 @@ import platform.windows.WaitForSingleObject
 private const val CLASS_NAME = "BatteryFlowManager"
 
 private val logger = KotlinLogging.logger("Mingwx64BatteryLogger")
-// TODO : Look for memory error in the file
 
-@OptIn(ExperimentalForeignApi::class)
 private val GUID_AC_DC_POWER_SOURCE = nativeHeap.alloc<GUID>().apply {
-    Data1 = 0x5D3E9A59u
-    Data2 = 0xE9D5u
-    Data3 = 0x4B00u
+	Data1 = 0x5D3E9A59u
+	Data2 = 0xE9D5u
+	Data3 = 0x4B00u
 
-    val bytes = listOf(0xA6u, 0xBDu, 0xFFu, 0x34u, 0xFFu, 0x51u, 0x65u, 0x48u)
-
-    for (i in bytes.indices) {
-        Data4[i] = bytes[i].toUByte()
-    }
+	listOf(0xA6u, 0xBDu, 0xFFu, 0x34u, 0xFFu, 0x51u, 0x65u, 0x48u)
+		.forEachIndexed { idx, byte -> Data4[idx] = byte.toUByte() }
 }
 
-@OptIn(ExperimentalForeignApi::class)
 private val GUILD_BATTERY_SAVER_MODE = nativeHeap.alloc<GUID>().apply {
-    Data1 = 0x20630d7fu
-    Data2 = 0xe248u
-    Data3 = 0x4b52u
+	Data1 = 0x20630d7fu
+	Data2 = 0xe248u
+	Data3 = 0x4b52u
 
-    val bytes = listOf(0xa7u, 0x46u, 0x81u, 0x49u, 0x8cu, 0x0bu, 0x70u, 0xe5u)
-
-    for (i in bytes.indices) {
-        Data4[i] = bytes[i].toUByte()
-    }
+	listOf(0xa7u, 0x46u, 0x81u, 0x49u, 0x8cu, 0x0bu, 0x70u, 0xe5u)
+		.forEachIndexed { idx, byte -> Data4[idx] = byte.toUByte() }
 }
 
 // hidden window pointer to receive notification
 private var window: CPointer<HWND__>? = null
 
 // pointer to power notification
-private var hPowerNotification: CPointer<out CPointed>? = null
-private var hPowerACDCNotification: CPointer<out CPointed>? = null
-private var hSaverModeNotification: CPointer<out CPointed>? = null
+private var powerCommonNotification: CPointer<out CPointed>? = null
+private var powerACDCNotification: CPointer<out CPointed>? = null
+private var powerSaverModeNotification: CPointer<out CPointed>? = null
 
 // call when a new broadcast is received
 private var callback: (() -> Unit)? = null
 
-@OptIn(ExperimentalForeignApi::class)
 private val procedureFunction = staticCFunction(::createWindowProcedure)
-
-@OptIn(ExperimentalForeignApi::class)
 private val observerRoutine = staticCFunction(::createObserverWindow)
 
-@OptIn(ExperimentalForeignApi::class)
-private fun createWindowProcedure(window: HWND?, msg: UInt, wParam: WPARAM, lParams: LPARAM): LRESULT {
-    return when (msg.toInt()) {
-        WM_CREATE -> {
-            logger.info { "WINDOW PROCEDURE CREATING" }
+private fun createWindowProcedure(
+	window: HWND?,
+	msg: UInt,
+	wParam: WPARAM,
+	lParams: LPARAM
+): LRESULT {
+	return when (msg.toInt()) {
+		WM_CREATE -> {
+			logger.info { "WINDOW PROCEDURE CREATING" }
 
-            // the window is loaded so creating the power setting notification
-            hPowerNotification = RegisterPowerSettingNotification(
-                hRecipient = window,
-                PowerSettingGuid = GUID_BATTERY_PERCENTAGE_REMAINING.ptr,
-                Flags = DEVICE_NOTIFY_WINDOW_HANDLE.toUInt()
-            )
+			// the window is loaded so creating the power setting notification
+			powerCommonNotification = RegisterPowerSettingNotification(
+				hRecipient = window,
+				PowerSettingGuid = GUID_BATTERY_PERCENTAGE_REMAINING.ptr,
+				Flags = DEVICE_NOTIFY_WINDOW_HANDLE.toUInt()
+			)
 
-            // register another one
-            hPowerACDCNotification = RegisterPowerSettingNotification(
-                hRecipient = window,
-                PowerSettingGuid = GUID_AC_DC_POWER_SOURCE.ptr,
-                Flags = DEVICE_NOTIFY_WINDOW_HANDLE.toUInt()
-            )
+			// register another one
+			powerACDCNotification = RegisterPowerSettingNotification(
+				hRecipient = window,
+				PowerSettingGuid = GUID_AC_DC_POWER_SOURCE.ptr,
+				Flags = DEVICE_NOTIFY_WINDOW_HANDLE.toUInt()
+			)
 
-            // register another one for battery saver mode
-            hSaverModeNotification = RegisterPowerSettingNotification(
-                hRecipient = window,
-                PowerSettingGuid = GUILD_BATTERY_SAVER_MODE.ptr,
-                Flags = DEVICE_NOTIFY_WINDOW_HANDLE.toUInt()
-            )
+			// register another one for battery saver mode
+			powerSaverModeNotification = RegisterPowerSettingNotification(
+				hRecipient = window,
+				PowerSettingGuid = GUILD_BATTERY_SAVER_MODE.ptr,
+				Flags = DEVICE_NOTIFY_WINDOW_HANDLE.toUInt()
+			)
 
-            val message = buildString {
-                append("BATTERY PERCENTAGE NOTIFICATION :")
-                if (hPowerNotification == null) append("ERROR: FAILED TO REGISTER NOTIFICATION :${GetLastError()}")
-                else append("REGISTERED,")
-                append("AC/DC NOTIFICATION: ")
-                if (hPowerNotification == null) append("ERROR: FAILED TO REGISTER NOTIFICATION :${GetLastError()}")
-                else append("REGISTERED,")
-                append("BATTERY SAVER: ")
-                if (hPowerNotification == null) append("ERROR: FAILED TO REGISTER NOTIFICATION :${GetLastError()}")
-                else append("REGISTERED")
-            }
+			val message = buildString {
+				append("BATTERY PERCENTAGE NOTIFICATION :")
+				if (powerCommonNotification == null) append("ERROR: FAILED TO REGISTER NOTIFICATION :${GetLastError()}")
+				else append("REGISTERED,")
+				append("AC/DC NOTIFICATION: ")
+				if (powerCommonNotification == null) append("ERROR: FAILED TO REGISTER NOTIFICATION :${GetLastError()}")
+				else append("REGISTERED,")
+				append("BATTERY SAVER: ")
+				if (powerCommonNotification == null) append("ERROR: FAILED TO REGISTER NOTIFICATION :${GetLastError()}")
+				else append("REGISTERED")
+			}
 
-            logger.info { message }
+			logger.info { message }
+			0
+		}
 
-            return 0
-        }
+		WM_POWERBROADCAST -> {
+			val isPowerStatusChange = wParam.toInt() == PBT_APMPOWERSTATUSCHANGE
+			val isPowerSettingsChanged = wParam.toInt() == PBT_POWERSETTINGCHANGE
+			logger.info { "POWER STATUS CHANGED:$isPowerStatusChange POWER SETTINGS CHANGED:$isPowerSettingsChanged" }
 
-        WM_POWERBROADCAST -> {
-            logger.info { "PROCEDURE SOME BROADCAST FOUND ${wParam.toInt()}" }
-            if (wParam.toInt() != PBT_APMPOWERSTATUSCHANGE && wParam.toInt() != PBT_POWERSETTINGCHANGE) return 0
-            // receiving broadcast here
-            callback?.invoke()
-            return 1
-        }
+			if (!isPowerStatusChange && !isPowerSettingsChanged) return 0
+			// receiving broadcast here
+			callback?.invoke()
+			1
+		}
 
-        WM_DESTROY -> {
-            // the window is destroyed so remove all the registered notification
-            hPowerNotification?.let {
-                UnregisterPowerSettingNotification(it)
-                hPowerNotification = null
-            }
-            hPowerACDCNotification?.let {
-                UnregisterPowerSettingNotification(it)
-                hPowerACDCNotification = null
-            }
-            hSaverModeNotification?.let {
-                UnregisterPowerSettingNotification(it)
-                hSaverModeNotification = null
-            }
-            PostQuitMessage(0)
-            logger.info { "WINDOW PROCEDURE DESTROYED UNREGISTERING ALL THE NOTIFICATIONS" }
-            return 0
-        }
-        // send the default messages
-        else -> DefWindowProcW(window, msg, wParam, lParams)
-    }
+		WM_DESTROY -> {
+			// the window is destroyed so remove all the registered notification
+			powerCommonNotification?.let {
+				UnregisterPowerSettingNotification(it)
+				powerCommonNotification = null
+			}
+			powerACDCNotification?.let {
+				UnregisterPowerSettingNotification(it)
+				powerACDCNotification = null
+			}
+			powerSaverModeNotification?.let {
+				UnregisterPowerSettingNotification(it)
+				powerSaverModeNotification = null
+			}
+			PostQuitMessage(0)
+			logger.info { "WINDOW PROCEDURE DESTROYED UNREGISTERING ALL THE POWER NOTIFICATIONS" }
+			0
+		}
+		// send the default messages
+		else -> DefWindowProcW(window, msg, wParam, lParams)
+	}
 }
 
 
-@OptIn(ExperimentalForeignApi::class)
 private fun createObserverWindow(lpParams: LPVOID?): DWORD = memScoped {
-    val wc = alloc<WNDCLASS>().apply {
-        lpfnWndProc = procedureFunction
-        hInstance = GetModuleHandleW(null)
-        this.lpszClassName = CLASS_NAME.wcstr.ptr
-    }
+	val handleInstance = GetModuleHandleW(null)
 
-    // registering a window class for procedure function
-    if (RegisterClassW(wc.ptr) <= 0u) return 0u
+	val wc = alloc<WNDCLASS>().apply {
+		lpfnWndProc = procedureFunction
+		hInstance = handleInstance
+		this.lpszClassName = CLASS_NAME.wcstr.ptr
+	}
 
-    // this will create the window
-    window = CreateWindowExW(
-        dwExStyle = 0u,
-        lpClassName = CLASS_NAME,
-        lpWindowName = "Battery Observer",
-        dwStyle = 0u,
-        X = CW_USEDEFAULT,
-        Y = CW_USEDEFAULT,
-        nWidth = CW_USEDEFAULT,
-        nHeight = CW_USEDEFAULT,
-        hWndParent = HWND_MESSAGE,
-        hMenu = null,
-        hInstance = wc.hInstance,
-        lpParam = null
-    )
+	// registering a window class for procedure function
+	if (RegisterClassW(wc.ptr) <= 0u) return 0u
 
-    if (window == null) return 1u
+	// this will create the window
+	window = CreateWindowExW(
+		dwExStyle = 0u,
+		lpClassName = CLASS_NAME,
+		lpWindowName = null,
+		dwStyle = 0u,
+		X = CW_USEDEFAULT,
+		Y = CW_USEDEFAULT,
+		nWidth = CW_USEDEFAULT,
+		nHeight = CW_USEDEFAULT,
+		hWndParent = HWND_MESSAGE,
+		hMenu = null,
+		hInstance = wc.hInstance,
+		lpParam = null
+	)
 
-    logger.info { "WINDOW CREATED" }
+	if (window == null) return 1u
 
-    val msg = alloc<MSG>()
-    while (GetMessageW(msg.ptr, null, 0u, 0u) == 1) {
-        TranslateMessage(msg.ptr)
-        DispatchMessageW(msg.ptr)
-    }
+	logger.info { "WINDOW CREATED BEGIN EVENT LOOP" }
 
-    // when the message loop ends, unregister the class or remove it.
-    UnregisterClassW(CLASS_NAME, GetModuleHandleW(null))
+	val msg = alloc<MSG>()
+	while (GetMessageW(msg.ptr, null, 0u, 0u) == 1) {
+		TranslateMessage(msg.ptr)
+		DispatchMessageW(msg.ptr)
+	}
 
-    return 0u
+	// when the message loop ends ie, a quit message is received
+	// unregister the class or remove it.
+	UnregisterClassW(CLASS_NAME, wc.hInstance)
+
+	return 0u
 }
 
-@OptIn(ExperimentalForeignApi::class)
 fun createNewThreadAndStartObserver(caller: () -> Unit): HANDLE? {
-    if (window != null) {
-        logger.warn { "OBSERVER ALREADY PLANTED" }
-        return 1L.toCPointer<COpaque>()?.reinterpret()
-    }
+	if (window != null) {
+		logger.warn { "OBSERVER ALREADY PLANTED NEED TO CLEAR THE WINDOW TO CONTINUE" }
+		return 1L.toCPointer<COpaque>()?.reinterpret()
+	}
 
-    callback = caller
+	callback = caller
 
-    val thread = CreateThread(
-        lpThreadAttributes = null,
-        dwStackSize = 0u,
-        lpStartAddress = observerRoutine,
-        lpParameter = null,
-        dwCreationFlags = 0u,
-        lpThreadId = null
-    )
+	val handle = CreateThread(
+		lpThreadAttributes = null,
+		dwStackSize = 0u,
+		lpStartAddress = observerRoutine,
+		lpParameter = null,
+		dwCreationFlags = 0u,
+		lpThreadId = null
+	)
 
-    if (thread == null) {
-        logger.warn { "UNABLE TO CREATE A THREAD CALLBACK REMOVED" }
-        callback = null
-        return null
-    }
-    return thread
+	if (handle == null) {
+		logger.warn { "UNABLE TO CREATE A THREAD CALLBACK REMOVED" }
+		callback = null
+		return null
+	}
+	return handle
 }
 
-@OptIn(ExperimentalForeignApi::class)
 fun stopObserverAndCloseThread(handle: HANDLE?) {
-    if (window == NULL) return
-    //wait for a single object is a blocking call so running it on a different thread
+	if (window == NULL) return
+	//wait for a single object is a blocking call so running it on a different thread
 
-    logger.info { "STOPPING THE OBSERVER AND SENDING MESSAGE" }
-    PostMessageW(window, WM_DESTROY.toUInt(), 0u, 0L)
+	logger.info { "STOPPING THE OBSERVER AND SENDING MESSAGE" }
+	PostMessageW(window, WM_DESTROY.toUInt(), 0u, 0L)
 
-    val isBlankHandle: HANDLE? = 1L.toCPointer<COpaque>()?.reinterpret()
+	val isBlankHandle: HANDLE? = 1L.toCPointer<COpaque>()?.reinterpret()
 
-    if (handle == null || handle == isBlankHandle) {
-        logger.warn { "CANNOT REMOVE AS IT WAS NOT CREATED PROPERLY" }
-        return
-    }
+	if (handle == null || handle == isBlankHandle) {
+		logger.warn { "CANNOT REMOVE AS IT WAS NOT CREATED PROPERLY" }
+		return
+	}
 
-    WaitForSingleObject(handle, INFINITE)
-    CloseHandle(handle)
+	WaitForSingleObject(handle, INFINITE)
+	CloseHandle(handle)
 
-    window = null
-    callback = null
-    logger.info { "CLEAN UP DONE" }
+	window = null
+	callback = null
+	logger.info { "CLEAN UP DONE" }
 
 }

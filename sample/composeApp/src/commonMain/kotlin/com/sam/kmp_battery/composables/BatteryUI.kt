@@ -1,5 +1,4 @@
-package com.sam.kmp_battery_sample
-
+package com.sam.kmp_battery.composables
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
@@ -25,7 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.sam.shared.BatteryState
 
 @Composable
-fun BatteryUI(
+internal fun BatteryUI(
 	state: BatteryState,
 	modifier: Modifier = Modifier
 ) {

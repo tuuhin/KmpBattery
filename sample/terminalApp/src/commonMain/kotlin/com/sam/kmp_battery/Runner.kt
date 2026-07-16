@@ -1,4 +1,4 @@
-package com.sam.kmp_battery_sample
+package com.sam.kmp_battery
 
 import com.sam.shared.BatteryManager
 
@@ -15,7 +15,7 @@ suspend fun runner(manager: BatteryManager) {
 		4 or Other to Quit
 	""".trimIndent()
 		)
-		var option = readln()
+		val option = readln()
 
 		val validOption = option.trim().toIntOrNull() ?: 4
 		when (validOption) {
