@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -30,9 +31,14 @@ internal fun BatteryScreen(
 		topBar = {
 			MediumTopAppBar(
 				title = { Text("Battery Screen") },
-				scrollBehavior = scrollBehavior
+				scrollBehavior = scrollBehavior,
+				colors = TopAppBarDefaults.topAppBarColors(
+					containerColor = MaterialTheme.colorScheme.surfaceContainer,
+					scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+				)
 			)
 		},
+		containerColor = MaterialTheme.colorScheme.surfaceContainer,
 		modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
 	) { scPadding ->
 		Column(

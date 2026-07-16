@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.sam.shared.BatteryState
 
 @Composable
@@ -28,6 +27,10 @@ internal fun BatteryUI(
 	state: BatteryState,
 	modifier: Modifier = Modifier
 ) {
+
+	val chargingColor = MaterialTheme.colorScheme.primary
+	val batteryColor = MaterialTheme.colorScheme.onSurface
+
 	Column(
 		modifier = modifier.padding(16.dp),
 		horizontalAlignment = Alignment.CenterHorizontally
@@ -37,7 +40,7 @@ internal fun BatteryUI(
 		) {
 
 			drawRoundRect(
-				color = Color.Black,
+				color = batteryColor,
 				cornerRadius = CornerRadius(10.dp.toPx()),
 				style = Stroke(width = 2.dp.toPx())
 			)
@@ -60,7 +63,7 @@ internal fun BatteryUI(
 						val batteryBarHeight = (state.amount / 100) * size.height
 
 						drawRoundRect(
-							color = Color.Green,
+							color = chargingColor,
 							topLeft = Offset(0f, size.height - batteryBarHeight),
 							cornerRadius = CornerRadius(10.dp.toPx()),
 						)
@@ -78,7 +81,7 @@ internal fun BatteryUI(
 
 					BatteryState.Full -> {
 						drawRoundRect(
-							color = Color.Green,
+							color = chargingColor,
 							cornerRadius = CornerRadius(10.dp.toPx()),
 						)
 					}
@@ -99,7 +102,8 @@ internal fun BatteryUI(
 				is BatteryState.Unknown -> "Unknown State"
 				is BatteryState.NoBatteryFound -> "No Battery Found"
 			},
-			style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp)
+			style = MaterialTheme.typography.headlineSmallEmphasized,
+			color = MaterialTheme.colorScheme.secondary
 		)
 	}
 }

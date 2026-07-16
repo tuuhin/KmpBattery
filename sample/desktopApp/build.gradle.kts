@@ -22,10 +22,10 @@ dependencies {
 	implementation(compose.desktop.currentOs)
 	// koin
 	implementation(libs.koin.core)
-
 	// nucleus
 	implementation(libs.nucleus.core.application)
 	implementation(libs.nucleus.decorated.window.tao)
+	implementation(libs.nucleus.decorated.window.material3)
 
 	// shared data
 	implementation(project(":sample:composeApp"))

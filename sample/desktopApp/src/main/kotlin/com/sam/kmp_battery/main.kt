@@ -1,33 +1,56 @@
 package com.sam.kmp_battery
 
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composer
 import androidx.compose.runtime.tooling.ComposeStackTraceMode
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import dev.nucleusframework.application.DecoratedWindow
+import androidx.compose.ui.window.WindowPosition
+import androidx.compose.ui.window.rememberWindowState
+import com.sam.kmp_battery.theme.KmpBatteryTheme
 import dev.nucleusframework.application.nucleusApplication
-import dev.nucleusframework.window.TitleBar
 import dev.nucleusframework.window.macOSLargeCornerRadius
+import dev.nucleusframework.window.material.MaterialDecoratedWindow
+import dev.nucleusframework.window.material.MaterialTitleBar
+import dev.nucleusframework.window.material.rememberMaterialTitleBarStyle
 import java.util.Locale
 
 fun main(args: Array<String>) = nucleusApplication(
 	args = args,
 	defaultLocale = Locale.ENGLISH,
 ) {
+
 	// compose stack trace.
 	Composer.setDiagnosticStackTraceMode(ComposeStackTraceMode.SourceInformation)
+	val windowState = rememberWindowState(position = WindowPosition(Alignment.Center))
 
-	DecoratedWindow(
-		onCloseRequest = ::exitApplication,
-		title = "Kmp Battery App",
-	) {
-		TitleBar(modifier = Modifier.macOSLargeCornerRadius()) { _ ->
-			Text(title, modifier = Modifier.padding(8.dp))
-		}
-		App {
-			printLogger()
+	KmpBatteryTheme(dynamicColor = true) {
+
+		val colorScheme = MaterialTheme.colorScheme
+		val style = rememberMaterialTitleBarStyle(colorScheme = colorScheme)
+
+		MaterialDecoratedWindow(
+			onCloseRequest = ::exitApplication,
+			title = "Kmp Battery",
+			minimumSize = DpSize(640.dp, 480.dp),
+			state = windowState,
+		) {
+			MaterialTitleBar(
+				modifier = Modifier.macOSLargeCornerRadius(),
+				style = style
+			) {
+				Text(
+					text = title,
+					modifier = Modifier.align(Alignment.CenterHorizontally),
+					color = MaterialTheme.colorScheme.onSurface,
+				)
+			}
+			App {
+				printLogger()
+			}
 		}
 	}
 }

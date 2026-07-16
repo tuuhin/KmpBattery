@@ -52,6 +52,10 @@ kotlin {
 				implementation(libs.koin.annotations)
 				implementation(libs.koin.compose.viewmodel)
 
+				// color
+				implementation(libs.materialKolor)
+				implementation(libs.nucleus.system.accent)
+
 				implementation(project(":shared"))
 			}
 		}
