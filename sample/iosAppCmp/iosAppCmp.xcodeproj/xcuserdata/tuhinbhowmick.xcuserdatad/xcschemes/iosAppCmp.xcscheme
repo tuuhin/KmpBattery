@@ -7,10 +7,10 @@
             buildForRunning = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "FC8E95D23009F6A60073BA0C"
-               BuildableName = "iosApp.app"
-               BlueprintName = "iosApp"
-               ReferencedContainer = "container:iosApp.xcodeproj">
+               BlueprintIdentifier = "FCBD3E48300A098B0000F606"
+               BuildableName = "iosAppCmp.app"
+               BlueprintName = "iosAppCmp"
+               ReferencedContainer = "container:iosAppCmp.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -22,10 +22,10 @@
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FC8E95D23009F6A60073BA0C"
-            BuildableName = "iosApp.app"
-            BlueprintName = "iosApp"
-            ReferencedContainer = "container:iosApp.xcodeproj">
+            BlueprintIdentifier = "FCBD3E48300A098B0000F606"
+            BuildableName = "iosAppCmp.app"
+            BlueprintName = "iosAppCmp"
+            ReferencedContainer = "container:iosAppCmp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
