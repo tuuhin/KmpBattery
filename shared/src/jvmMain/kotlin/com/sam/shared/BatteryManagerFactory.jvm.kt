@@ -9,6 +9,7 @@ import com.sam.bluepad.platform.native.NativeBatteryStateNoBatteryFound
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.concurrent.thread
@@ -39,7 +40,10 @@ actual class BatteryManagerFactory {
 
 					return callbackFlow {
 
-						trySend(manager.batteryState().toBatteryState())
+						launch {
+							val state = manager.batteryState()
+							send(state.toBatteryState())
+						}
 
 						val handle = manager.subscribedToBatteryState(
 							onFull = { trySend(BatteryState.Full) },
@@ -84,7 +88,13 @@ actual class BatteryManagerFactory {
 			is NativeBatteryStateDisCharging -> BatteryState.DisCharging(amount)
 			is NativeBatteryStateFull -> BatteryState.Full
 			is NativeBatteryStateNoBatteryFound -> BatteryState.NoBatteryFound
-			else -> BatteryState.Unknown
+			else -> when (code) {
+				0 -> BatteryState.Full
+				1 -> BatteryState.Charging(amt)
+				2 -> BatteryState.DisCharging(amt)
+				3 -> BatteryState.NoBatteryFound
+				else -> BatteryState.Unknown
+			}
 		}
 	}
 }

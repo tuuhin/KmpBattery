@@ -7,7 +7,10 @@ import com.sam.shared.native.NativeBatteryStateDisCharging
 import com.sam.shared.native.NativeBatteryStateFull
 import com.sam.shared.native.NativeBatteryStateNoBatteryFound
 import com.sam.shared.native.NativeBatteryStateUnknown
+import io.github.oshai.kotlinlogging.DirectLoggerFactory
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLoggingConfiguration
+import io.github.oshai.kotlinlogging.Level
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CPointed
@@ -57,34 +60,50 @@ private data class BatterySubscriber(
 	val onBatteryNotFound: () -> Unit
 )
 
-
 @OptIn(ExperimentalAtomicApi::class)
 actual class NativeBatteryManagerImpl actual constructor() : NativeBatteryManager {
 
 	actual override fun batteryLevel(): Int = memScoped {
-		val snapshot: CFTypeRef = IOPSCopyPowerSourcesInfo() ?: return@memScoped -1
-		val sourcesList: CFArrayRef = IOPSCopyPowerSourcesList(snapshot) ?: return@memScoped -1
+		val snapshot: CFTypeRef = IOPSCopyPowerSourcesInfo() ?: run {
+			logger.warn { "UNABLE TO READ BATTERY LEVEL SOURCE INFO CANNOT BE DETERMINED" }
+			return@memScoped -1
+		}
+		val sourcesList: CFArrayRef = IOPSCopyPowerSourcesList(snapshot) ?: run {
+			logger.warn { "UNABLE TO READ BATTERY LEVEL SOURCE LIST CANNOT BE DETERMINED" }
+			CFRelease(snapshot)
+			return@memScoped -1
+		}
 
 		try {
 			val count = CFArrayGetCount(sourcesList)
 			if (count == 0L) return@memScoped -1
 
-			// first power handle
 			var powerSource: COpaquePointer? = null
 			for (idx in 0..<count) {
 				val source = CFArrayGetValueAtIndex(sourcesList, idx) ?: continue
 				powerSource = source
 			}
 
-			if (powerSource == null) return@memScoped -1
+			if (powerSource == null) {
+				logger.warn { "NO POWER SOURCE FOUND" }
+				return@memScoped -1
+			}
 
-			val description = IOPSGetPowerSourceDescription(snapshot, powerSource)
-				?: return@memScoped -1
+			val description = IOPSGetPowerSourceDescription(snapshot, powerSource) ?: run {
+				logger.warn { "FAILED TO READ DESCRIPTION POWER SET" }
+				return@memScoped -1
+			}
 
 			val transportType = getStringKey("Transport Type", description)
 			if (transportType != "Internal") return@memScoped -1
 
-			getIntKey("Current Capacity", description)
+
+			val currentCapacity = getIntKey("Current Capacity", description)
+			logger.info { "CURRENT BATTERY LEVEL: $currentCapacity%" }
+			currentCapacity
+		} catch (e: Exception) {
+			logger.error { "CANNOT READ BATTERY STATE: ${e.message}" }
+			-1
 		} finally {
 			CFRelease(snapshot)
 			CFRelease(sourcesList)
@@ -94,7 +113,9 @@ actual class NativeBatteryManagerImpl actual constructor() : NativeBatteryManage
 	actual override fun batteryState(): NativeBatteryState = readState()
 
 	actual override fun isBatteryInPowerSavingMode(): Boolean {
-		return NSProcessInfo.processInfo.lowPowerModeEnabled
+		val isLowPower = NSProcessInfo.processInfo.lowPowerModeEnabled
+		logger.info { "LOW POWER MODE CHECK: Enabled = $isLowPower" }
+		return isLowPower
 	}
 
 	actual override fun subscribedToBatteryState(
@@ -104,6 +125,8 @@ actual class NativeBatteryManagerImpl actual constructor() : NativeBatteryManage
 		onUnknown: () -> Unit,
 		onBatteryNotFound: () -> Unit
 	): Long {
+		logger.info { "REGISTERING TO BATTERY CHANGE CALLBACK" }
+
 		val subscriber =
 			BatterySubscriber(onFull, onCharging, onDisCharging, onUnknown, onBatteryNotFound)
 		val stableRef = StableRef.create(subscriber)
@@ -111,7 +134,10 @@ actual class NativeBatteryManagerImpl actual constructor() : NativeBatteryManage
 
 		val nativeCallback = staticCFunction { context: COpaquePointer? ->
 			if (context == null) return@staticCFunction
+
 			val sub = context.asStableRef<BatterySubscriber>().get()
+			println("HARDWARE NOTIFICATION RECEIVED")
+
 			when (val batteryState = readState()) {
 				is NativeBatteryStateFull -> sub.onFull()
 				is NativeBatteryStateCharging -> sub.onCharging(batteryState.amount)
@@ -121,44 +147,56 @@ actual class NativeBatteryManagerImpl actual constructor() : NativeBatteryManage
 			}
 		}
 
-		// run loop to the os
 		val runLoopSource: CFRunLoopSourceRef = IOPSNotificationCreateRunLoopSource(
 			nativeCallback,
 			stableRef.asCPointer()
 		) ?: run {
+			logger.error { "FAILED TO CREATE A RUN LOOP" }
 			_callbackRef?.dispose()
+			_callbackRef = null
 			return -1L
 		}
 
 		val mainLoop = CFRunLoopGetMain()
 		CFRunLoopAddSource(mainLoop, runLoopSource, kCFRunLoopDefaultMode)
-
 		return runLoopSource.toLong()
 	}
 
 	actual override fun unsubscribeToBatteryState(readHandle: Long) {
 		if (readHandle == -1L) {
+			logger.warn { "INVALID HANDLE RECEIVED" }
 			_callbackRef?.dispose()
+			_callbackRef = null
 			return
 		}
 
-		val runLoopSource: CFRunLoopSourceRef =
-			readHandle.toCPointer<CPointed>()?.reinterpret() ?: run {
-				_callbackRef?.dispose()
-				return
-			}
+		val runLoopSource: CFRunLoopSourceRef = readHandle.toCPointer<CPointed>()
+			?.reinterpret() ?: run {
+			_callbackRef?.dispose()
+			_callbackRef = null
+			return
+		}
 
 		val mainRunLoop = CFRunLoopGetMain()
 		CFRunLoopRemoveSource(mainRunLoop, runLoopSource, kCFRunLoopDefaultMode)
 
 		CFRelease(runLoopSource)
+
 		_callbackRef?.dispose()
+		_callbackRef = null
+		logger.info { "CLEARING SUBSCRIBERS" }
 	}
 
 	companion object {
 
+		private val logger by lazy {
+			KotlinLoggingConfiguration.logStartupMessage = false
+			KotlinLoggingConfiguration.loggerFactory = DirectLoggerFactory
+			KotlinLoggingConfiguration.direct.logLevel = Level.DEBUG
+			KotlinLogging.logger("MacosBatteryLogger")
+		}
+
 		private var _callbackRef: StableRef<BatterySubscriber>? = null
-		private val logger = KotlinLogging.logger("MacosBatteryLogger")
 
 		private fun getStringKey(key: String, description: CFDictionaryRef): String? = memScoped {
 			val cfKey = CFStringCreateWithCString(null, key, kCFStringEncodingUTF8)
@@ -180,6 +218,7 @@ actual class NativeBatteryManagerImpl actual constructor() : NativeBatteryManage
 
 			if (cfValue == null) return -1
 
+
 			val intVar = alloc<IntVar>()
 			val isReadSuccess =
 				CFNumberGetValue(cfValue.reinterpret(), kCFNumberIntType, intVar.ptr)
@@ -189,17 +228,20 @@ actual class NativeBatteryManagerImpl actual constructor() : NativeBatteryManage
 		}
 
 		private fun readState() = memScoped {
-			val snapshot: CFTypeRef =
-				IOPSCopyPowerSourcesInfo() ?: return@memScoped NativeBatteryStateUnknown()
-
-			val sourcesList: CFArrayRef =
-				IOPSCopyPowerSourcesList(snapshot) ?: return@memScoped NativeBatteryStateUnknown()
+			val snapshot: CFTypeRef = IOPSCopyPowerSourcesInfo() ?: run {
+				logger.warn { "UNABLE TO READ BATTERY LEVEL SOURCE INFO CANNOT BE DETERMINED" }
+				return@memScoped NativeBatteryStateNoBatteryFound()
+			}
+			val sourcesList: CFArrayRef = IOPSCopyPowerSourcesList(snapshot) ?: run {
+				logger.warn { "UNABLE TO READ BATTERY LEVEL SOURCE LIST CANNOT BE DETERMINED" }
+				CFRelease(snapshot)
+				return@memScoped NativeBatteryStateNoBatteryFound()
+			}
 
 			try {
 				val count = CFArrayGetCount(sourcesList)
 				if (count == 0L) return@memScoped NativeBatteryStateNoBatteryFound()
 
-				// first power handle
 				var powerSource: COpaquePointer? = null
 				for (idx in 0..<count) {
 					val source = CFArrayGetValueAtIndex(sourcesList, idx) ?: continue
@@ -208,27 +250,36 @@ actual class NativeBatteryManagerImpl actual constructor() : NativeBatteryManage
 
 				if (powerSource == null) return@memScoped NativeBatteryStateNoBatteryFound()
 
-				val description = IOPSGetPowerSourceDescription(snapshot, powerSource)
-					?: return@memScoped NativeBatteryStateUnknown()
+				val description = IOPSGetPowerSourceDescription(snapshot, powerSource) ?: run {
+					return@memScoped NativeBatteryStateNoBatteryFound()
+				}
 
 				val transportType = getStringKey("Transport Type", description)
-				if (transportType != "Internal") return@memScoped NativeBatteryStateNoBatteryFound()
+				if (transportType != "Internal") {
+					return@memScoped NativeBatteryStateNoBatteryFound()
+				}
 
 				val currentCapacity = getIntKey("Current Capacity", description)
 				val maxCapacity = getIntKey("Max Capacity", description)
 				val sourceState = getStringKey("Power Source State", description)
 				val isCharging = getIntKey("Is Charging", description) == 1
-				val percentage =
-					if (maxCapacity > 0) (currentCapacity.toFloat() * 100) / maxCapacity else 0f
+				val percentage = if (maxCapacity > 0)
+					(currentCapacity.toFloat() * 100) / maxCapacity
+				else 0f
 
-				logger.info { "SOURCE STATE: $sourceState PERCENTAGE:$percentage IS_CHARGING:$isCharging" }
+				logger.info { "SourceState: '$sourceState', Capacity: $currentCapacity/$maxCapacity ($percentage%), IsCharging flag: $isCharging" }
 
 				when {
-					percentage >= 95 -> NativeBatteryStateFull()
+					percentage >= 95f -> NativeBatteryStateFull()
 					sourceState == "AC Power" || isCharging -> NativeBatteryStateCharging(percentage)
 					sourceState == "Battery Power" -> NativeBatteryStateDisCharging(percentage)
-					else -> NativeBatteryStateNoBatteryFound()
+					else -> {
+						logger.warn { "UNKNOWN/NO_BATTERY" }
+						NativeBatteryStateNoBatteryFound()
+					}
 				}
+			} catch (_: Exception) {
+				NativeBatteryStateUnknown()
 			} finally {
 				CFRelease(snapshot)
 				CFRelease(sourcesList)

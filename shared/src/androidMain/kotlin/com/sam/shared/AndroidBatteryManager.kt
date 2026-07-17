@@ -14,10 +14,10 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
-private val logger = KotlinLogging.logger { "AndroidBatteryManager" }
+private val logger = KotlinLogging.logger("AndroidBatteryManager")
 
 class AndroidBatteryManager(private val context: Context) : BatteryManager {
 
@@ -29,7 +29,7 @@ class AndroidBatteryManager(private val context: Context) : BatteryManager {
 			addAction(Intent.ACTION_BATTERY_LOW)
 		}
 
-	override suspend fun batteryLevel(): Int = suspendCoroutine { cont ->
+	override suspend fun batteryLevel(): Int = suspendCancellableCoroutine { cont ->
 		try {
 			val intent = ContextCompat.registerReceiver(
 				context,
@@ -38,7 +38,7 @@ class AndroidBatteryManager(private val context: Context) : BatteryManager {
 				ContextCompat.RECEIVER_EXPORTED
 			) ?: run {
 				cont.resumeWithException(CannotCreateStickyReceiver())
-				return@suspendCoroutine
+				return@suspendCancellableCoroutine
 			}
 
 			val level: Int = intent.getIntExtra(AndroidOSBatteryManager.EXTRA_LEVEL, -1)
@@ -60,7 +60,7 @@ class AndroidBatteryManager(private val context: Context) : BatteryManager {
 	}
 
 	override suspend fun batteryState(): BatteryState {
-		return suspendCoroutine { cont ->
+		return suspendCancellableCoroutine { cont ->
 			try {
 				val intent = ContextCompat.registerReceiver(
 					context,
@@ -69,12 +69,12 @@ class AndroidBatteryManager(private val context: Context) : BatteryManager {
 					ContextCompat.RECEIVER_EXPORTED
 				) ?: run {
 					cont.resumeWithException(CannotCreateStickyReceiver())
-					return@suspendCoroutine
+					return@suspendCancellableCoroutine
 				}
 
 				val state = intent.toBatteryState() ?: run {
 					cont.resumeWithException(InvalidBatteryAction())
-					return@suspendCoroutine
+					return@suspendCancellableCoroutine
 				}
 				cont.resumeWith(Result.success(state))
 			} catch (e: Exception) {
