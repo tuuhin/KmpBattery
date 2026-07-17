@@ -9,6 +9,7 @@ android-targetSdk = "37"
 kotlin-logging = "8.0.4"
 androidxActivity = "1.13.0"
 koin = "4.2.2"
+splashApiVersion = "1.2.0"
 koin-plugin = "1.0.2"
 androidx-lifecycle = "2.11.0"
 composeMultiplatform = "1.11.1"
@@ -26,6 +27,8 @@ materialKolor = "5.0.0"
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+#android splash
+androidx-splash = { module = "androidx.core:core-splashscreen", version.ref = "splashApiVersion" }
 # kotlinx coroutines
 kotlinx-coroutines-bom = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-bom", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
