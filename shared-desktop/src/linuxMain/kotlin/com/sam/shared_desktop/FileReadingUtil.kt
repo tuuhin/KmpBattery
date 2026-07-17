@@ -1,4 +1,4 @@
-package com.sam.shared
+package com.sam.shared_desktop
 
 import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -6,9 +6,6 @@ import kotlinx.cinterop.allocArray
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.pointed
 import kotlinx.cinterop.toKString
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.withContext
 import platform.posix.closedir
 import platform.posix.fclose
 import platform.posix.fgets
@@ -16,13 +13,13 @@ import platform.posix.fopen
 import platform.posix.opendir
 import platform.posix.readdir
 
-const val POWER_INFO_DIR_LOCATION = "/sys/class/power_supply"
+internal object FileReadingUtil {
+	const val POWER_INFO_DIR_LOCATION = "/sys/class/power_supply"
 
-@OptIn(ExperimentalForeignApi::class)
-suspend fun readFile(filePath: String, bufferSize: Int = 128): String? {
-	return withContext(Dispatchers.IO) {
-		val filePointer = fopen(filePath, "r") ?: return@withContext null
-		try {
+	@OptIn(ExperimentalForeignApi::class)
+	fun readFile(filePath: String, bufferSize: Int = 128): String? {
+		val filePointer = fopen(filePath, "r") ?: return null
+		return try {
 			memScoped {
 				val buffer = allocArray<ByteVar>(bufferSize)
 				buildString {
@@ -35,13 +32,12 @@ suspend fun readFile(filePath: String, bufferSize: Int = 128): String? {
 			fclose(filePointer)
 		}
 	}
-}
 
-@OptIn(ExperimentalForeignApi::class)
-suspend fun findPowerSupplyDevice(type: LinuxPowerClass): String? {
-	var powerName: String? = null
-	withContext(Dispatchers.IO) {
-		val directory = opendir(POWER_INFO_DIR_LOCATION) ?: return@withContext null
+	@OptIn(ExperimentalForeignApi::class)
+	fun findPowerSupplyDevice(type: LinuxPowerClass): String? {
+		var powerName: String? = null
+
+		val directory = opendir(POWER_INFO_DIR_LOCATION) ?: return null
 		try {
 			while (true) {
 				val readDir = readdir(directory) ?: break
@@ -59,6 +55,7 @@ suspend fun findPowerSupplyDevice(type: LinuxPowerClass): String? {
 		} finally {
 			closedir(directory)
 		}
+
+		return powerName
 	}
-	return powerName
 }

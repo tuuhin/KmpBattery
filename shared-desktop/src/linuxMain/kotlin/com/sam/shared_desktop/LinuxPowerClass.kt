@@ -1,6 +1,6 @@
-package com.sam.shared
+package com.sam.shared_desktop
 
-enum class LinuxPowerClass(val type: String, val folderName: String) {
+internal enum class LinuxPowerClass(val type: String, val folderName: String) {
     BATTERY("Battery", "battery"),
     USB("USB", "usb"),
     AC("Mains", "ac")

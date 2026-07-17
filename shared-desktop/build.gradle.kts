@@ -15,10 +15,17 @@ kotlin {
 	when {
 		os.isWindows -> mingwX64()
 		os.isMacOsX -> macosArm64()
-		os.isLinux -> linuxX64()
+		os.isLinux -> linuxX64 {
+			compilations.getByName("main") {
+				cinterops.create("gio") {
+					definitionFile = project.file("src/nativeInterop/cinterOp/linux_c.def")
+					packageName = "com.sam.shared_desktop.linux"
+				}
+			}
+		}
+
 		else -> throw GradleException("Unkown desktop target only windows, macos and linux are supported")
 	}
-
 	// jvm
 	jvm()
 
