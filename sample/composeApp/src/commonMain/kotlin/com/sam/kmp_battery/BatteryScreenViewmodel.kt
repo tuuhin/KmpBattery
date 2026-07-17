@@ -13,7 +13,7 @@ internal class BatteryScreenViewmodel(btManager: BatteryManager) : ViewModel() {
 
 	val batteryState = btManager.batteryStateFlow.stateIn(
 		scope = viewModelScope,
-		started = SharingStarted.WhileSubscribed(10_000L),
+		started = SharingStarted.WhileSubscribed(2_000L),
 		initialValue = BatteryState.Unknown
 	)
 }

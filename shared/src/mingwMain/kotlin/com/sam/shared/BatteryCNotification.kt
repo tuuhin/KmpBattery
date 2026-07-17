@@ -2,7 +2,6 @@
 
 package com.sam.shared
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.cinterop.COpaque
 import kotlinx.cinterop.CPointed
 import kotlinx.cinterop.CPointer
@@ -57,7 +56,6 @@ import platform.windows.WaitForSingleObject
 
 private const val CLASS_NAME = "BatteryFlowManager"
 
-private val logger = KotlinLogging.logger("WindowsBatteryLogger")
 
 private val GUID_AC_DC_POWER_SOURCE = nativeHeap.alloc<GUID>().apply {
 	Data1 = 0x5D3E9A59u

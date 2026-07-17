@@ -7,6 +7,10 @@ import com.sam.shared.native.NativeBatteryStateDisCharging
 import com.sam.shared.native.NativeBatteryStateFull
 import com.sam.shared.native.NativeBatteryStateNoBatteryFound
 import com.sam.shared.native.NativeBatteryStateUnknown
+import io.github.oshai.kotlinlogging.DirectLoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLoggingConfiguration
+import io.github.oshai.kotlinlogging.Level
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.IntVar
 import kotlinx.cinterop.alloc
@@ -23,7 +27,15 @@ import platform.windows.GetSystemPowerStatus
 import platform.windows.LPSYSTEM_POWER_STATUS
 import platform.windows.SYSTEM_POWER_STATUS
 
+internal val logger = KotlinLogging.logger("WindowsBatteryLogger")
+
 actual class NativeBatteryManagerImpl actual constructor() : NativeBatteryManager {
+
+	init {
+		KotlinLoggingConfiguration.logStartupMessage = false
+		KotlinLoggingConfiguration.direct.logLevel = Level.DEBUG
+		KotlinLoggingConfiguration.loggerFactory = DirectLoggerFactory
+	}
 
 	private fun canCheckBatteryStatus(lpStatus: LPSYSTEM_POWER_STATUS) =
 		GetSystemPowerStatus(lpStatus) != 0
@@ -93,12 +105,17 @@ actual class NativeBatteryManagerImpl actual constructor() : NativeBatteryManage
 				else -> onUnknown()
 			}
 		}
+		logger.debug { "THREAD HANDLE CREATED" }
 		return handle?.toLong() ?: -1L
 	}
 
 	actual override fun unsubscribeToBatteryState(readHandle: Long) {
-		if (readHandle == -1L) return
+		if (readHandle == -1L) {
+			logger.warn { "INVALID HANDLE TO WORK WITH" }
+			return
+		}
 		val handle: CPointer<IntVar>? = readHandle.toCPointer()
+		logger.debug { "THREAD HANDLE DISPOSED" }
 		stopObserverAndCloseThread(handle)
 	}
 }

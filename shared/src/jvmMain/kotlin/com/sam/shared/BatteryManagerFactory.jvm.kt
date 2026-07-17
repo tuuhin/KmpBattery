@@ -9,10 +9,14 @@ import com.sam.bluepad.platform.native.NativeBatteryStateNoBatteryFound
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.thread
 
 actual class BatteryManagerFactory {
 
 	actual fun createProvider(): BatteryManager {
+
 		return object : BatteryManager {
 			override suspend fun batteryLevel(): Int {
 				return NativeBatteryManagerImpl().use { it.batteryLevel() }
@@ -28,9 +32,11 @@ actual class BatteryManagerFactory {
 				}
 			}
 
+			@OptIn(ExperimentalAtomicApi::class)
 			override val batteryStateFlow: Flow<BatteryState>
 				get() {
 					val manager = NativeBatteryManagerImpl()
+
 					return callbackFlow {
 
 						trySend(manager.batteryState().toBatteryState())
@@ -42,9 +48,30 @@ actual class BatteryManagerFactory {
 							onBatteryNotFound = { trySend(BatteryState.NoBatteryFound) },
 							onUnknown = { trySend(BatteryState.Unknown) },
 						)
-						awaitClose {
+
+						val cleaned = AtomicBoolean(false)
+
+						// clean up code
+						fun cleanup() {
+							if (!cleaned.compareAndSet(expectedValue = false, newValue = true))
+								return
+
 							manager.unsubscribeToBatteryState(handle)
 							manager.close()
+						}
+
+						// set the shutdown hook
+						val shutdownHook = thread(false) { cleanup() }
+						Runtime.getRuntime().addShutdownHook(shutdownHook)
+
+						awaitClose {
+							try {
+								// remove it as the jvm will handle the cleanup by itself
+								Runtime.getRuntime().removeShutdownHook(shutdownHook)
+							} catch (_: IllegalStateException) {
+
+							}
+							cleanup()
 						}
 					}
 				}
