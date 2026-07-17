@@ -1,4 +1,5 @@
 import dev.nucleusframework.desktop.application.dsl.CompressionLevel
+import dev.nucleusframework.desktop.application.dsl.DmgContentType
 import dev.nucleusframework.desktop.application.dsl.TargetFormat
 import org.jetbrains.compose.resources.ResourcesExtension
 import java.util.Properties
@@ -100,6 +101,32 @@ nucleus.application {
 				wide310x150Logo.set(packagingRoot.file("windows/appx/Wide310x150Logo.png"))
 			}
 		}
+
+		macOS {
+			bundleID = commonProperties.getProperty("APP_PACKAGE_NAME")
+			dockName = commonProperties.getProperty("APP_NAME")
+
+			minimumSystemVersion = "12.0"
+			macOsSdkVersion = "26.0"
+
+			appCategory = "public.app-category.utilities"
+
+			layeredIconDir.set(packagingRoot.dir("macos/kmp_battery.icon"))
+			iconFile.set(packagingRoot.file("macos/kmp_battery.icns"))
+
+			entitlementsFile.set(packagingRoot.file("macos/entitlements.plist"))
+			runtimeEntitlementsFile.set(packagingRoot.file("macos/runtime-entitlements.plist"))
+
+			dmg {
+				title = $$"${productName} ${version}"
+				iconSize = 128
+				window { x = 400; y = 100; width = 540; height = 380 }
+				backgroundColor =
+					commonProperties.getProperty("APP_INSTALLER_BACKGROUND", "#C4F18C")
+				content(x = 130, y = 220, type = DmgContentType.File, name = "MyApp.app")
+				content(x = 410, y = 220, type = DmgContentType.Link, path = "/Applications")
+			}
+		}
 	}
 }
 
@@ -116,7 +143,31 @@ compose.resources {
 	)
 }
 
-val generateWindowsAppIcon = tasks.register<Exec>("genAppIcon") {
+val generateMacosAppIcns = tasks.register<Exec>("genAppIconMacos") {
+	group = "nucleus packaging"
+	description = "Generates clipped, rounded macos icons"
+
+	val icon = project.layout.projectDirectory.file("packaging/kmp_battery.svg").asFile
+	val commonProperties = Properties().apply {
+		val commons = project.file("packaging.properties")
+		commons.inputStream().use(::load)
+	}
+
+	val script = project.layout.projectDirectory.file("packaging/macos/app_images.sh").asFile
+	val bgColor = commonProperties.getProperty("APP_INSTALLER_BACKGROUND", "#C4F18C")
+
+	workingDir(project.layout.projectDirectory.file("packaging"))
+	commandLine(
+		"bash", script.absolutePath, icon.absolutePath,
+		"-c", bgColor, "-r", "22", "-f", "85",
+	)
+
+	onlyIf {
+		org.gradle.internal.os.OperatingSystem.current().isMacOsX
+	}
+}
+
+val generateWindowsAppIcon = tasks.register<Exec>("genAppIconWindos") {
 	group = "nucleus packaging"
 	description = "Generates clipped, rounded Windows assets from the SVG source icon."
 
