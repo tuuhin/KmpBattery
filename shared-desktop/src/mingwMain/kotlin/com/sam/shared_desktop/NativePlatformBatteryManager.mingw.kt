@@ -22,7 +22,7 @@ import platform.windows.SYSTEM_POWER_STATUS
 
 internal val logger = KotlinLogging.logger("WindowsBatteryLogger")
 
-actual class NativeBatteryManagerImpl actual constructor() : NativeBatteryManager {
+actual class NativePlatformBatteryManager actual constructor() : NativeBatteryManager {
 
 	init {
 		KotlinLoggingConfiguration.logStartupMessage = false

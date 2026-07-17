@@ -53,9 +53,3 @@ kotlinNativeExport {
 	nativePackage = "com.sam.bluepad.platform.native"
 	buildType = "debug"
 }
-
-afterEvaluate {
-	kotlin.targets.forEach {
-		println("${it.name} -> ${it::class.simpleName}")
-	}
-}
