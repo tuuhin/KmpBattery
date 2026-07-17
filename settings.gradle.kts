@@ -18,6 +18,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "KmpBattery"
 include(":shared")
+include(":shared-desktop")
 include(":sample:terminalApp")
 include(":sample:desktopApp")
 include(":sample:androidApp")

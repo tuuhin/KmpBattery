@@ -6,14 +6,14 @@ import com.github.ajalt.mordant.rendering.TextStyles
 import com.github.ajalt.mordant.terminal.Terminal
 import com.github.ajalt.mordant.terminal.danger
 import com.github.ajalt.mordant.terminal.success
-import com.sam.shared.BatteryManager
+import com.sam.shared_desktop.NativeBatteryManager
 import kotlinx.coroutines.coroutineScope
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 internal class TerminalApp : KoinComponent {
 
-	private val batteryManager by inject<BatteryManager>()
+	private val batteryManager by inject<NativeBatteryManager>()
 	private val terminal = Terminal()
 
 	suspend fun run() = coroutineScope {

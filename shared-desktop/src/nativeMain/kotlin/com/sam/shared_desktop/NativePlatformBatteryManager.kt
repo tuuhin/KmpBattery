@@ -1,9 +1,6 @@
-package com.sam.shared
+package com.sam.shared_desktop
 
-import com.sam.shared.native.NativeBatteryManager
-import com.sam.shared.native.NativeBatteryState
-
-expect class NativeBatteryManagerImpl constructor() : NativeBatteryManager {
+expect class NativePlatformBatteryManager constructor() : NativeBatteryManager {
 	override fun batteryLevel(): Int
 	override fun batteryState(): NativeBatteryState
 	override fun isBatteryInPowerSavingMode(): Boolean

@@ -1,13 +1,16 @@
 package com.sam.kmp_battery.di
 
 import com.sam.shared_desktop.NativeBatteryManager
+import com.sam.shared_desktop.NativePlatformBatteryManager
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.Module
 import org.koin.core.scope.Scope
 
 @Module
-expect class AppModule {
+actual class AppModule {
 
 	@Factory
-	fun providesPlatformComponent(scope: Scope): NativeBatteryManager
+	actual fun providesPlatformComponent(scope: Scope): NativeBatteryManager {
+		return NativePlatformBatteryManager()
+	}
 }

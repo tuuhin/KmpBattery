@@ -1,4 +1,4 @@
-package com.sam.shared.native
+package com.sam.shared_desktop
 
 /**
  * Native battery state acts as an marker interface without amount and code

@@ -80,7 +80,6 @@ androidApplication = { id = "com.android.application", version.ref = "agp" }
 composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-
 # nucleus
 nucleus-framework = { id = "dev.nucleusframework", version.ref = "nucleus" }
 nucleus-nna = { id = "dev.nucleusframework.nna", version.ref = "nucleusnativeaccess" }

@@ -43,7 +43,7 @@ kotlin {
 			// terminal ui
 			implementation(libs.mordant)
 			implementation(libs.mordant.coroutines)
-			implementation(project(":shared"))
+			implementation(project(":shared-desktop"))
 		}
 	}
 }

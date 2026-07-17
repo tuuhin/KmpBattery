@@ -1,6 +1,5 @@
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
-	alias(libs.plugins.android.kotlin.multiplatform)
 	alias(libs.plugins.nucleus.nna)
 }
 
@@ -10,15 +9,15 @@ kotlin {
 
 	jvmToolchain(25)
 
-	// android
-	android {
-		namespace = "com.sam.shared"
-		compileSdk = libs.versions.android.compileSdk.get().toInt()
-		minSdk = libs.versions.android.minSdk.get().toInt()
-	}
 
-	iosArm64()
-	iosSimulatorArm64()
+	val os = org.gradle.internal.os.OperatingSystem.current()
+
+	when {
+		os.isWindows -> mingwX64()
+		os.isMacOsX -> macosArm64()
+		os.isLinux -> linuxX64()
+		else -> throw GradleException("Unkown desktop target only windows, macos and linux are supported")
+	}
 
 	// jvm
 	jvm()
@@ -29,17 +28,10 @@ kotlin {
 			api(libs.kotlin.logging)
 		}
 
-		jvmMain.dependencies {
-			implementation(project(":shared-desktop"))
+		jvmTest.dependencies {
+			implementation(libs.kotlin.test)
 		}
 
-		commonTest.dependencies {
-			implementation(libs.kotlin.test)
-			implementation(libs.turbine)
-		}
-		androidMain.dependencies {
-			implementation(libs.androidx.core.ktx)
-		}
 	}
 
 	compilerOptions {
@@ -52,10 +44,4 @@ kotlinNativeExport {
 	nativeLibName = "kmpBattery"
 	nativePackage = "com.sam.bluepad.platform.native"
 	buildType = "debug"
-}
-
-afterEvaluate {
-	kotlin.targets.forEach {
-		println("${it.name} -> ${it::class.simpleName}")
-	}
 }
