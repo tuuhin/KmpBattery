@@ -28,36 +28,46 @@ kotlin {
 		}
 	}
 
+	listOf(
+		iosArm64(),
+		iosSimulatorArm64()
+	).forEach { iosTarget ->
+		iosTarget.binaries.framework {
+			baseName = "ComposeApp"
+			isStatic = true
+		}
+	}
+
 	jvm()
 
 	sourceSets {
-		commonMain {
-			dependencies {
-				// compose
-				implementation(libs.cmp.runtime)
-				implementation(libs.cmp.foundation)
-				implementation(libs.cmp.ui)
-				implementation(libs.cmp.material3)
-				implementation(libs.cmp.components.resources)
-				implementation(libs.cmp.ui.tooling.preview)
+		commonMain.dependencies {
+			// compose
+			implementation(libs.cmp.runtime)
+			implementation(libs.cmp.foundation)
+			implementation(libs.cmp.ui)
+			implementation(libs.cmp.material3)
+			implementation(libs.cmp.components.resources)
+			implementation(libs.cmp.ui.tooling.preview)
 
-				// lifecyle and viewmodel
-				implementation(libs.androidx.lifecycle.viewmodelCompose)
-				implementation(libs.androidx.lifecycle.runtimeCompose)
+			// lifecyle and viewmodel
+			implementation(libs.androidx.lifecycle.viewmodelCompose)
+			implementation(libs.androidx.lifecycle.runtimeCompose)
 
-				//koin
-				implementation(libs.koin.core)
-				implementation(libs.koin.compose)
-				implementation(libs.koin.viewmodel)
-				implementation(libs.koin.annotations)
-				implementation(libs.koin.compose.viewmodel)
+			//koin
+			implementation(libs.koin.core)
+			implementation(libs.koin.compose)
+			implementation(libs.koin.viewmodel)
+			implementation(libs.koin.annotations)
+			implementation(libs.koin.compose.viewmodel)
 
-				// color
-				implementation(libs.materialKolor)
-				implementation(libs.nucleus.system.accent)
+			// color
+			implementation(libs.materialKolor)
+			implementation(project(":shared"))
+		}
 
-				implementation(project(":shared"))
-			}
+		jvmMain.dependencies {
+			implementation(libs.nucleus.system.accent)
 		}
 	}
 

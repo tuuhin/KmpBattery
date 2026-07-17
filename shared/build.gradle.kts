@@ -17,13 +17,20 @@ val cLibName = "kmpBattery"
 kotlin {
 
 	jvmToolchain(25)
+	applyDefaultHierarchyTemplate()
 
+	// android
 	android {
 		namespace = "com.sam.shared"
 		compileSdk = libs.versions.android.compileSdk.get().toInt()
 		minSdk = libs.versions.android.minSdk.get().toInt()
 	}
 
+	// ios
+	iosArm64()
+	iosSimulatorArm64()
+
+	// native desktop
 	when (hostTarget) {
 		"mingwX64" -> mingwX64()
 		"macosArm64" -> macosArm64()
@@ -31,6 +38,7 @@ kotlin {
 		else -> throw GradleException("Desktop target not valid")
 	}
 
+	// jvm
 	jvm()
 
 	sourceSets {
