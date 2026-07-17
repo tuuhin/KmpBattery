@@ -1,4 +1,7 @@
+import dev.nucleusframework.desktop.application.dsl.CompressionLevel
+import dev.nucleusframework.desktop.application.dsl.TargetFormat
 import org.jetbrains.compose.resources.ResourcesExtension
+import java.util.Properties
 
 plugins {
 	alias(libs.plugins.jetbrains.kotlin.jvm)
@@ -29,6 +32,58 @@ dependencies {
 
 	// shared data
 	implementation(project(":sample:composeApp"))
+}
+
+nucleus.application {
+	mainClass = "com.sam.kmp_battery.MainKt"
+
+	jvmArgs += listOf(
+		"--enable-native-access=ALL-UNNAMED",
+		"--add-opens=java.base/java.nio=ALL-UNNAMED",
+		"-Dsun.misc.unsafe.allow=true",
+	)
+
+	buildTypes {
+		release {
+			proguard {
+				version = "7.9.1"
+				isEnabled = false
+				optimize = true
+				obfuscate = false
+				joinOutputJars = true
+				configurationFiles.from(project.file("proguard-rules.pro"))
+			}
+		}
+	}
+
+	nativeDistributions {
+
+		val commonProperties = Properties().apply {
+			val commons = project.file("packaging.properties")
+			commons.inputStream().use(::load)
+		}
+
+		// application targets
+		targetFormats(TargetFormat.Msi, TargetFormat.Portable, TargetFormat.Nsis, TargetFormat.Deb)
+
+		// target base config
+		appName = commonProperties.getProperty("APP_NAME")
+		packageName = commonProperties.getProperty("APP_PACKAGE_NAME")
+		packageVersion = commonProperties.getProperty("APP_PACKAGE_VERSION")
+		description = commonProperties.getProperty("APP_DESCRIPTION")
+		vendor = commonProperties.getProperty("APP_VENDOR")
+		copyright = commonProperties.getProperty("APP_COPYRIGHT")
+		licenseFile.set(rootProject.file("LICENCE"))
+
+		// java modules
+		modules("java.instrument", "jdk.unsupported", "java.management")
+
+		// target common connfiguration
+		outputBaseDir.set(project.layout.buildDirectory.dir("desktop"))
+		appResourcesRootDir.set(project.layout.projectDirectory.dir("desktopResources"))
+		compressionLevel = CompressionLevel.Normal
+		cleanupNativeLibs = true
+	}
 }
 
 

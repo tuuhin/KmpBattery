@@ -18,7 +18,8 @@
    <LaunchAction
       useCustomWorkingDirectory = "NO"
       buildConfiguration = "Debug"
-      allowLocationSimulation = "YES">
+      allowLocationSimulation = "YES"
+      language = "en-GB">
       <BuildableProductRunnable>
          <BuildableReference
             BuildableIdentifier = "primary"
@@ -28,5 +29,9 @@
             ReferencedContainer = "container:iosAppCmp.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <LocationScenarioReference
+         identifier = "com.apple.dt.IDEFoundation.CurrentLocationScenarioIdentifier"
+         referenceType = "1">
+      </LocationScenarioReference>
    </LaunchAction>
 </Scheme>
