@@ -1,5 +1,6 @@
 plugins {
 	alias(libs.plugins.kotlin.multiplatform)
+	alias(libs.plugins.koin.compiler)
 }
 
 
@@ -24,12 +25,24 @@ kotlin {
 
 	target.binaries {
 		executable {
-			entryPoint = "com.sam.kmp_battery_sample.main"
+			entryPoint = "com.sam.kmp_battery.main"
 		}
+	}
+
+	compilerOptions {
+		freeCompilerArgs.add("-Xexpect-actual-classes")
 	}
 
 	sourceSets {
 		commonMain.dependencies {
+
+			// koin
+			implementation(libs.koin.core)
+			implementation(libs.koin.annotations)
+
+			// terminal ui
+			implementation(libs.mordant)
+			implementation(libs.mordant.coroutines)
 			implementation(project(":shared"))
 		}
 	}
