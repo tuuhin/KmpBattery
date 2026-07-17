@@ -31,7 +31,6 @@ android {
 		}
 	}
 	buildFeatures {
-		buildConfig = true
 		compose = true
 	}
 }
@@ -40,6 +39,7 @@ dependencies {
 	// android
 	implementation(libs.androidx.core.ktx)
 	implementation(libs.activity.compose)
+	implementation(libs.androidx.splash)
 	// koin
 	implementation(libs.koin.core)
 	implementation(libs.koin.android)
