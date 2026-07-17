@@ -1,0 +1,5 @@
+/build
+/packaging/windows/appx/*.png
+/packaging/windows/*.ico
+/packaging/macos/*.icns
+/packaging/macos/*.icon

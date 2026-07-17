@@ -1,0 +1,7 @@
+package com.sam.shared
+
+actual class BatteryManagerFactory {
+	actual fun createProvider(): BatteryManager {
+		return IOSNativeBatteryManager()
+	}
+}

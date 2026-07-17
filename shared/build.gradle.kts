@@ -1,38 +1,55 @@
 plugins {
-	alias(libs.plugins.kotlinMultiplatform)
-	alias(libs.plugins.androidKotlinMultiplatformLibrary)
+	alias(libs.plugins.kotlin.multiplatform)
+	alias(libs.plugins.android.kotlin.multiplatform)
+	alias(libs.plugins.nucleus.nna)
 }
 
+val cLibName = "kmpBattery"
+
 kotlin {
-	androidLibrary {
+
+	jvmToolchain(25)
+
+	// android
+	android {
 		namespace = "com.sam.shared"
 		compileSdk = libs.versions.android.compileSdk.get().toInt()
 		minSdk = libs.versions.android.minSdk.get().toInt()
 	}
-	mingwX64()
-	linuxX64()
+
+	iosArm64()
+	iosSimulatorArm64()
+
+	// jvm
+	jvm()
 
 	sourceSets {
-		commonMain {
-			dependencies {
-				implementation(libs.kotlinx.coroutines)
-				api(libs.kotlin.logging)
-			}
-		}
-		commonTest {
-			dependencies {
-				implementation(libs.kotlin.test)
-			}
+		commonMain.dependencies {
+			implementation(libs.kotlinx.coroutines.core)
+			api(libs.kotlin.logging)
 		}
 
-		androidMain {
-			dependencies {
-				implementation(libs.androidx.core.ktx)
-			}
+		jvmMain.dependencies {
+			implementation(project(":shared-desktop"))
+		}
+
+		commonTest.dependencies {
+			implementation(libs.kotlin.test)
+			implementation(libs.turbine)
+		}
+		androidMain.dependencies {
+			implementation(libs.androidx.core.ktx)
 		}
 	}
 
 	compilerOptions {
-		freeCompilerArgs.set(freeCompilerArgs.get() + "-Xexpect-actual-classes")
+		freeCompilerArgs.add("-Xexpect-actual-classes")
+		optIn.add("kotlinx.cinterop.ExperimentalForeignApi")
 	}
+}
+
+kotlinNativeExport {
+	nativeLibName = "kmpBattery"
+	nativePackage = "com.sam.bluepad.platform.native"
+	buildType = "debug"
 }

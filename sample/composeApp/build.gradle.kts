@@ -1,57 +1,92 @@
 plugins {
-	alias(libs.plugins.androidx.application)
-	alias(libs.plugins.kotlinMultiplatform)
+	alias(libs.plugins.kotlin.multiplatform)
+	alias(libs.plugins.android.kotlin.multiplatform)
 	alias(libs.plugins.compose.compiler)
-	alias(libs.plugins.androidx.compose)
+	alias(libs.plugins.koin.compiler)
 }
 
 kotlin {
-	jvmToolchain(19)
-	androidTarget()
+	jvmToolchain(25)
+	android {
+		namespace = "com.sam.kmp_battery_common_ui"
+		minSdk = libs.versions.android.minSdk.get().toInt()
+		compileSdk = libs.versions.android.compileSdk.get().toInt()
+
+		withHostTest {
+			isIncludeAndroidResources = true
+		}
+
+		withDeviceTestBuilder {
+			sourceSetTreeName = "test"
+		}.configure {
+			instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+			execution = "HOST"
+		}
+
+		androidResources {
+			enable = true
+		}
+	}
+
+	val os = org.gradle.internal.os.OperatingSystem.current()
+	if (os.isMacOsX) {
+		listOf(
+			iosArm64(),
+			iosSimulatorArm64()
+		).forEach { iosTarget ->
+			iosTarget.binaries.framework {
+				baseName = "ComposeApp"
+				isStatic = true
+			}
+		}
+	}
+
+	jvm()
 
 	sourceSets {
+		commonMain.dependencies {
+			// compose
+			implementation(libs.cmp.runtime)
+			implementation(libs.cmp.foundation)
+			implementation(libs.cmp.ui)
+			implementation(libs.cmp.material3)
+			implementation(libs.cmp.components.resources)
+			implementation(libs.cmp.ui.tooling.preview)
 
-		commonMain {
-			dependencies {
-				implementation(compose.runtime)
-				implementation(compose.foundation)
-				implementation(compose.material3)
-				implementation(project(":shared"))
-			}
+			// lifecyle and viewmodel
+			implementation(libs.androidx.lifecycle.viewmodelCompose)
+			implementation(libs.androidx.lifecycle.runtimeCompose)
+
+			//koin
+			implementation(libs.koin.core)
+			implementation(libs.koin.compose)
+			implementation(libs.koin.viewmodel)
+			implementation(libs.koin.annotations)
+			implementation(libs.koin.compose.viewmodel)
+
+			// color
+			implementation(libs.materialKolor)
+			implementation(project(":shared"))
 		}
 
-		androidMain {
-			dependencies {
-				implementation(libs.activity.compose)
-			}
+		jvmMain.dependencies {
+			implementation(libs.nucleus.system.accent)
 		}
+	}
+
+	compilerOptions {
+		freeCompilerArgs.add("-Xexpect-actual-classes")
+		optIn.add("kotlinx.cinterop.ExperimentalForeignApi")
 	}
 }
 
-android {
-	namespace = "com.sam.kmp_battery_sample"
-	compileSdk = libs.versions.android.compileSdk.get().toInt()
-
-	defaultConfig {
-		minSdk = libs.versions.android.minSdk.get().toInt()
-		targetSdk = libs.versions.android.compileSdk.get().toInt()
-
-		versionCode = 1
-		versionName = "1.0.0"
-		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-		vectorDrawables {
-			useSupportLibrary = true
-		}
-	}
-
-	compileOptions {
-		sourceCompatibility = JavaVersion.VERSION_19
-		targetCompatibility = JavaVersion.VERSION_19
-	}
-
-	packaging {
-		resources {
-			excludes += "/META-INF/{AL2.0,LGPL2.1}"
-		}
-	}
+koinCompiler {
+	userLogs = true
 }
+
+composeCompiler {
+	metricsDestination = layout.buildDirectory.dir("compose_compiler")
+	reportsDestination = layout.buildDirectory.dir("compose_compiler")
+	stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("stability_config.conf"))
+}
+
