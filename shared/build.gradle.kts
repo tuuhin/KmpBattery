@@ -4,14 +4,6 @@ plugins {
 	alias(libs.plugins.nucleus.nna)
 }
 
-val hostOs: String = System.getProperty("os.name")
-val hostTarget = when {
-	hostOs == "Linux" -> "linuxX64"
-	hostOs == "Mac OS X" -> "macosArm64"
-	hostOs.startsWith("Windows") -> "mingwX64"
-	else -> error("Unsupported host OS: $hostOs")
-}
-
 val cLibName = "kmpBattery"
 
 kotlin {
@@ -27,15 +19,18 @@ kotlin {
 	}
 
 	// ios
-	iosArm64()
-	iosSimulatorArm64()
+	val os = org.gradle.internal.os.OperatingSystem.current()
+	if (os.isMacOsX) {
+		iosArm64()
+		iosSimulatorArm64()
+	}
 
 	// native desktop
-	when (hostTarget) {
-		"mingwX64" -> mingwX64()
-		"macosArm64" -> macosArm64()
-		"linuxX64" -> linuxX64()
-		else -> throw GradleException("Desktop target not valid")
+	when {
+		os.isWindows -> mingwX64()
+		os.isMacOsX -> macosArm64()
+		os.isLinux -> linuxX64()
+		else -> throw GradleException("Unkown desktop target only windows, macos and linux are supported")
 	}
 
 	// jvm

@@ -43,19 +43,6 @@ nucleus.application {
 		"-Dsun.misc.unsafe.allow=true",
 	)
 
-	buildTypes {
-		release {
-			proguard {
-				version = "7.9.1"
-				isEnabled = false
-				optimize = true
-				obfuscate = false
-				joinOutputJars = true
-				configurationFiles.from(project.file("proguard-rules.pro"))
-			}
-		}
-	}
-
 	nativeDistributions {
 
 		val commonProperties = Properties().apply {
@@ -64,7 +51,7 @@ nucleus.application {
 		}
 
 		// application targets
-		targetFormats(TargetFormat.Msi, TargetFormat.Portable, TargetFormat.Nsis, TargetFormat.Deb)
+		targetFormats(TargetFormat.Msi, TargetFormat.Portable, TargetFormat.Deb)
 
 		// target base config
 		appName = commonProperties.getProperty("APP_NAME")
@@ -83,9 +70,38 @@ nucleus.application {
 		appResourcesRootDir.set(project.layout.projectDirectory.dir("desktopResources"))
 		compressionLevel = CompressionLevel.Normal
 		cleanupNativeLibs = true
+
+		val packagingRoot = project.layout.projectDirectory.dir("packaging")
+		windows {
+			iconFile.set(packagingRoot.file("windows/kmp_battery.ico"))
+			upgradeUuid =
+				commonProperties.getProperty("WINDOWS_UPGRADE_UUID", null)?.ifEmpty { null }
+			console = false
+			perUserInstall = true
+			dirChooser = true
+
+			appx {
+
+				applicationId = commonProperties.getProperty("APP_PACKAGE_NAME")
+				publisherDisplayName = commonProperties.getProperty("APP_VENDOR")
+				displayName = commonProperties.getProperty("APP_NAME")
+				publisher = commonProperties.getProperty("WINDOWS_APPX_PUBLISHER")
+				identityName = commonProperties.getProperty("APP_PACKAGE_NAME")
+
+				languages = listOf("en-US")
+				backgroundColor = commonProperties.getProperty("APP_INSTALLER_BACKGROUND")
+				showNameOnTiles = true
+				addAutoLaunchExtension = false
+				setBuildNumber = true
+
+				storeLogo.set(packagingRoot.file("windows/appx/StoreLogo.png"))
+				square44x44Logo.set(packagingRoot.file("windows/appx/Square44x44Logo.png"))
+				square150x150Logo.set(packagingRoot.file("windows/appx/Square150x150Logo.png"))
+				wide310x150Logo.set(packagingRoot.file("windows/appx/Wide310x150Logo.png"))
+			}
+		}
 	}
 }
-
 
 compose.resources {
 	publicResClass = false
@@ -95,7 +111,31 @@ compose.resources {
 	customDirectory(
 		sourceSetName = "main",
 		directoryProvider = provider {
-			layout.projectDirectory.dir("src/main/resources/composeResources")
+			layout.projectDirectory.dir("src/composeResources")
 		},
 	)
+}
+
+val generateWindowsAppIcon = tasks.register<Exec>("genAppIcon") {
+	group = "nucleus packaging"
+	description = "Generates clipped, rounded Windows assets from the SVG source icon."
+
+	val icon = project.layout.projectDirectory.file("packaging/kmp_battery.svg").asFile
+	val commonProperties = Properties().apply {
+		val commons = project.file("packaging.properties")
+		commons.inputStream().use(::load)
+	}
+
+	val script = project.layout.projectDirectory.file("packaging/windows/app_images.bat").asFile
+	val bgColor = commonProperties.getProperty("APP_INSTALLER_BACKGROUND", "#C4F18C")
+	val outputDir = project.layout.projectDirectory.dir("packaging/windows/appx").asFile
+
+	workingDir(project.layout.projectDirectory.file("packaging"))
+	commandLine(
+		"cmd", "/c", script.absolutePath, icon.absolutePath, outputDir.absolutePath,
+		"-c", bgColor, "-r", "12",
+	)
+	onlyIf {
+		org.gradle.internal.os.OperatingSystem.current().isWindows
+	}
 }

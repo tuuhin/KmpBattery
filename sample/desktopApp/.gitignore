@@ -1,1 +1,3 @@
 /build
+/packaging/windows/appx/*.png
+/packaging/windows/*.ico

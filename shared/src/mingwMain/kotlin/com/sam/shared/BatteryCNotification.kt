@@ -57,7 +57,7 @@ import platform.windows.WaitForSingleObject
 
 private const val CLASS_NAME = "BatteryFlowManager"
 
-private val logger = KotlinLogging.logger("Mingwx64BatteryLogger")
+private val logger = KotlinLogging.logger("WindowsBatteryLogger")
 
 private val GUID_AC_DC_POWER_SOURCE = nativeHeap.alloc<GUID>().apply {
 	Data1 = 0x5D3E9A59u
@@ -97,10 +97,10 @@ private fun createWindowProcedure(
 	wParam: WPARAM,
 	lParams: LPARAM
 ): LRESULT {
+	logger.info { "WINDOW PROCEDURE CREATING" }
 	return when (msg.toInt()) {
 		WM_CREATE -> {
-			logger.info { "WINDOW PROCEDURE CREATING" }
-
+			logger.info { "EVENT WINDOW CREATED" }
 			// the window is loaded so creating the power setting notification
 			powerCommonNotification = RegisterPowerSettingNotification(
 				hRecipient = window,
@@ -141,7 +141,7 @@ private fun createWindowProcedure(
 		WM_POWERBROADCAST -> {
 			val isPowerStatusChange = wParam.toInt() == PBT_APMPOWERSTATUSCHANGE
 			val isPowerSettingsChanged = wParam.toInt() == PBT_POWERSETTINGCHANGE
-			logger.info { "POWER STATUS CHANGED:$isPowerStatusChange POWER SETTINGS CHANGED:$isPowerSettingsChanged" }
+			logger.info { "EVENT POWER STATUS CHANGED:$isPowerStatusChange POWER SETTINGS CHANGED:$isPowerSettingsChanged" }
 
 			if (!isPowerStatusChange && !isPowerSettingsChanged) return 0
 			// receiving broadcast here
@@ -150,6 +150,7 @@ private fun createWindowProcedure(
 		}
 
 		WM_DESTROY -> {
+			logger.info { "EVENT :WINDOW DESTROYED UNREGISTERING ALL THE POWER NOTIFICATIONS" }
 			// the window is destroyed so remove all the registered notification
 			powerCommonNotification?.let {
 				UnregisterPowerSettingNotification(it)
@@ -164,7 +165,6 @@ private fun createWindowProcedure(
 				powerSaverModeNotification = null
 			}
 			PostQuitMessage(0)
-			logger.info { "WINDOW PROCEDURE DESTROYED UNREGISTERING ALL THE POWER NOTIFICATIONS" }
 			0
 		}
 		// send the default messages
@@ -173,7 +173,7 @@ private fun createWindowProcedure(
 }
 
 
-private fun createObserverWindow(lpParams: LPVOID?): DWORD = memScoped {
+private fun createObserverWindow(h: LPVOID?): DWORD = memScoped {
 	val handleInstance = GetModuleHandleW(null)
 
 	val wc = alloc<WNDCLASS>().apply {
@@ -203,18 +203,17 @@ private fun createObserverWindow(lpParams: LPVOID?): DWORD = memScoped {
 
 	if (window == null) return 1u
 
-	logger.info { "WINDOW CREATED BEGIN EVENT LOOP" }
+	logger.info { "TRANSPARENT WINDOW CREATED BEGIN EVENT LOOP" }
 
 	val msg = alloc<MSG>()
 	while (GetMessageW(msg.ptr, null, 0u, 0u) == 1) {
 		TranslateMessage(msg.ptr)
 		DispatchMessageW(msg.ptr)
 	}
-
+	logger.info { "MESSAGE LOOP ENDED UNREGISTERING WINDOW" }
 	// when the message loop ends ie, a quit message is received
 	// unregister the class or remove it.
 	UnregisterClassW(CLASS_NAME, wc.hInstance)
-
 	return 0u
 }
 
@@ -240,6 +239,7 @@ fun createNewThreadAndStartObserver(caller: () -> Unit): HANDLE? {
 		callback = null
 		return null
 	}
+	logger.warn { "CREATED THREAD TO RECEIVE EVENTS" }
 	return handle
 }
 
@@ -258,6 +258,7 @@ fun stopObserverAndCloseThread(handle: HANDLE?) {
 	}
 
 	WaitForSingleObject(handle, INFINITE)
+	logger.info { "CLOSING WINDOW HANDLE" }
 	CloseHandle(handle)
 
 	window = null
