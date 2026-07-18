@@ -52,7 +52,7 @@ nucleus.application {
 		}
 
 		// application targets
-		targetFormats(TargetFormat.Msi, TargetFormat.Portable, TargetFormat.Deb)
+		targetFormats(TargetFormat.Msi, TargetFormat.Portable, TargetFormat.Deb,TargetFormat.AppImage)
 
 		// target base config
 		appName = commonProperties.getProperty("APP_NAME")

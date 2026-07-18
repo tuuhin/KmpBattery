@@ -1,162 +1,226 @@
 package com.sam.shared_desktop
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.cinterop.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.sam.shared_desktop.linux.*
 import platform.linux.*
 import platform.posix.*
-import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 private val logger = KotlinLogging.logger("LinuxBatteryManager")
 
 private class BatteryCallbacks(
-	val onFull: () -> Unit,
-	val onCharging: (amount: Float) -> Unit,
-	val onDisCharging: (amount: Float) -> Unit,
-	val onUnknown: () -> Unit
+    val onFull: () -> Unit,
+    val onCharging: (Float) -> Unit,
+    val onDisCharging: (Float) -> Unit,
+    val onUnknown: () -> Unit
+)
+
+private data class SubscriptionHandle(
+    val connection: CPointer<GDBusConnection>,
+    val subscriptionId: UInt
 )
 
 actual class NativePlatformBatteryManager actual constructor() : NativeBatteryManager {
 
-	actual override fun batteryLevel(): Int {
-		val powerSupplyType =
-			FileReadingUtil.findPowerSupplyDevice(LinuxPowerClass.BATTERY) ?: return 0
-		val levelFileName = "${FileReadingUtil.POWER_INFO_DIR_LOCATION}/$powerSupplyType/capacity"
-		val levelAsString = FileReadingUtil.readFile(levelFileName, 3) ?: return 0
-		return levelAsString.trim().toIntOrNull() ?: 0
-	}
+    companion object {
+        private const val HANDLE = 1L
 
-	actual override fun isBatteryInPowerSavingMode(): Boolean {
-		logger.info { "NO DIRECT API IS READY" }
-		return false
-	}
+        private var callbackRef: StableRef<BatteryCallbacks>? = null
+        private var subscription: SubscriptionHandle? = null
+    }
 
-	@OptIn(ExperimentalCoroutinesApi::class)
-	actual override fun batteryState(): NativeBatteryState {
-		val powerSupplyType = FileReadingUtil.findPowerSupplyDevice(LinuxPowerClass.BATTERY)
-			?: return NativeBatteryStateNoBatteryFound()
+    actual override fun batteryLevel(): Int {
+        val battery =
+            FileReadingUtil.findPowerSupplyDevice(LinuxPowerClass.BATTERY) ?: return 0
 
-		val fileName = "${FileReadingUtil.POWER_INFO_DIR_LOCATION}/$powerSupplyType/capacity"
-		val levelAsString =
-			FileReadingUtil.readFile(fileName, 3) ?: return NativeBatteryStateUnknown()
+        val levelFile =
+            "${FileReadingUtil.POWER_INFO_DIR_LOCATION}/$battery/capacity"
 
-		val batteryLevel = levelAsString.trim().toIntOrNull() ?: 0
+        return FileReadingUtil.readFile(levelFile, 3)
+            ?.trim()
+            ?.toIntOrNull()
+            ?: 0
+    }
 
-		val statusFile = "${FileReadingUtil.POWER_INFO_DIR_LOCATION}/$powerSupplyType/status"
-		val statusAsString = FileReadingUtil.readFile(statusFile, 3)?.trim()
-			?: return NativeBatteryStateUnknown()
-		val batteryStatus = when (statusAsString) {
-			"Discharging" -> PowerStatus.DISCHARGING
-			"Charging" -> PowerStatus.CHARGING
-			else -> PowerStatus.UNKNOWN
-		}
+    actual override fun isBatteryInPowerSavingMode(): Boolean {
+        logger.info { "NO DIRECT API IS READY" }
+        return false
+    }
 
-		if (batteryLevel == 100) return NativeBatteryStateFull()
-		return when (batteryStatus) {
-			PowerStatus.CHARGING -> NativeBatteryStateCharging(batteryLevel.toFloat())
-			PowerStatus.DISCHARGING -> NativeBatteryStateDisCharging(batteryLevel.toFloat())
-			PowerStatus.UNKNOWN -> NativeBatteryStateUnknown()
-		}
-	}
+    @OptIn(ExperimentalCoroutinesApi::class)
+    actual override fun batteryState(): NativeBatteryState {
 
-	actual override fun subscribedToBatteryState(
-		onFull: () -> Unit,
-		onCharging: (amount: Float) -> Unit,
-		onDisCharging: (amount: Float) -> Unit,
-		onUnknown: () -> Unit,
-		onBatteryNotFound: () -> Unit
-	): Long {
-		val batteryPath = "/org/freedesktop/UPower/devices/battery_BAT0"
-		if (access("/sys/class/power_supply/BAT0", F_OK) != 0) {
-			onBatteryNotFound()
-			return 0L
-		}
+        val battery =
+            FileReadingUtil.findPowerSupplyDevice(LinuxPowerClass.BATTERY)
+                ?: return NativeBatteryStateNoBatteryFound()
 
-		val connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, null, null) ?: run {
-			onBatteryNotFound()
-			return 0L
-		}
+        val level =
+            FileReadingUtil.readFile(
+                "${FileReadingUtil.POWER_INFO_DIR_LOCATION}/$battery/capacity",
+                3
+            )?.trim()?.toIntOrNull()
+                ?: return NativeBatteryStateUnknown()
 
-		val callbacks = BatteryCallbacks(onFull, onCharging, onDisCharging, onUnknown)
-		val stableRef = StableRef.create(callbacks)
+        val status =
+            FileReadingUtil.readFile(
+                "${FileReadingUtil.POWER_INFO_DIR_LOCATION}/$battery/status",
+                32
+            )?.trim()
+                ?: return NativeBatteryStateUnknown()
 
-		val subscriptionId = g_dbus_connection_signal_subscribe(
-			connection,
-			"org.freedesktop.UPower",
-			"org.freedesktop.DBus.Properties",
-			"PropertiesChanged",
-			batteryPath,
-			null,
-			G_DBUS_SIGNAL_FLAGS_NONE,
-			staticCFunction { _, _, _, _, _, parameters, userData ->
-				if (parameters == null || userData == null) return@staticCFunction
+        if (level == 100)
+            return NativeBatteryStateFull()
 
-				val actualCallbacks = userData.asCPointer<gpointer>()!!.asStableRef<BatteryCallbacks>().get()
+        return when (status) {
+            "Charging" -> NativeBatteryStateCharging(level.toFloat())
+            "Discharging" -> NativeBatteryStateDisCharging(level.toFloat())
+            else -> NativeBatteryStateUnknown()
+        }
+    }
 
-				memScoped {
-					val changedInterface = alloc<CPointerVar<ByteVar>>()
-					val changedProperties = alloc<CPointerVar<GVariant>>()
+    actual override fun subscribedToBatteryState(
+        onFull: () -> Unit,
+        onCharging: (amount:Float) -> Unit,
+        onDisCharging: (amount:Float) -> Unit,
+        onUnknown: () -> Unit,
+        onBatteryNotFound: () -> Unit
+    ): Long {
 
-					// Unpack parameters tuple safely
-					g_variant_get(parameters, "(&s@a{sv}^as)", changedInterface.ptr, changedProperties.ptr, null)
+        // Remove any previous subscription.
+        unsubscribeToBatteryState(HANDLE)
 
-					if (g_strcmp0(changedInterface.value, "org.freedesktop.UPower.Device") == 0) {
-						val iter = alloc<GVariantIter>()
-						val key = alloc<CPointerVar<ByteVar>>()
-						val value = alloc<CPointerVar<GVariant>>()
+        val battery =
+            FileReadingUtil.findPowerSupplyDevice(LinuxPowerClass.BATTERY)
+                ?: run {
+                    onBatteryNotFound()
+                    return -1L
+                }
 
-						g_variant_iter_init(iter.ptr, changedProperties.value)
+        val batteryPath =
+            "/org/freedesktop/UPower/devices/battery_$battery"
 
-						var currentPercentage = -1f
-						var currentState = -1
+        val connection =
+            g_bus_get_sync(G_BUS_TYPE_SYSTEM, null, null)
+                ?: run {
+                    onBatteryNotFound()
+                    return -1L
+                }
 
-						while (g_variant_iter_next(iter.ptr, "{&sv}", key.ptr, value.ptr) != 0) {
-							val currentKey = key.value?.toKString()
+        callbackRef = StableRef.create(
+            BatteryCallbacks(
+                onFull = onFull,
+                onCharging = onCharging,
+                onDisCharging = onDisCharging,
+                onUnknown = onUnknown
+            )
+        )
 
-							if (currentKey == "State") {
-								currentState = g_variant_get_uint32(value.value).toInt()
-							} else if (currentKey == "Percentage") {
-								currentPercentage = g_variant_get_double(value.value).toFloat()
-							}
-							g_variant_unref(value.value)
-						}
+        val subscriptionId = g_dbus_connection_signal_subscribe(
+            connection,
+            "org.freedesktop.UPower",
+            "org.freedesktop.DBus.Properties",
+            "PropertiesChanged",
+            batteryPath,
+            null,
+            G_DBUS_SIGNAL_FLAGS_NONE,
+            staticCFunction { _, _, _, _, _, parameters, userData ->
 
-						if (currentState != -1 || currentPercentage != -1f) {
-							val finalPercent = if (currentPercentage >= 0f) currentPercentage else 0f
+                if (parameters == null || userData == null)
+                    return@staticCFunction
 
-							when (currentState) {
-								1 -> actualCallbacks.onCharging(finalPercent)
-								2 -> actualCallbacks.onDisCharging(finalPercent)
-								4 -> actualCallbacks.onFull()
-								else -> actualCallbacks.onUnknown()
-							}
-						}
-					}
-					g_variant_unref(changedProperties.value)
-				}
-			},
-			stableRef.asCPointer(),
-			null
-		)
+                val callbacks = userData
+                    .asStableRef<BatteryCallbacks>()
+                    .get()
 
-		g_object_unref(connection)
+                memScoped {
 
-		val nativePointerLong = stableRef.asCPointer().toLong()
-		return (subscriptionId.toLong() shl 32) or (nativePointerLong and 0xFFFFFFFFL)
-	}
+                    val changedInterface = alloc<CPointerVar<ByteVar>>()
+                    val changedProperties = alloc<CPointerVar<GVariant>>()
 
-	actual override fun unsubscribeToBatteryState(readHandle: Long) {
-		if (readHandle == 0L) return
+                    g_variant_get(
+                        parameters,
+                        "(&s@a{sv}^as)",
+                        changedInterface.ptr,
+                        changedProperties.ptr,
+                        null
+                    )
 
-		val subscriptionId = (readHandle ushr 32).toUInt()
-		val pointerLong = readHandle and 0xFFFFFFFFL
-		val stableRefPointer = pointerLong.toCPointer<COpaque>()
+                    if (changedInterface.value?.toKString() !=
+                        "org.freedesktop.UPower.Device"
+                    ) {
+                        g_variant_unref(changedProperties.value)
+                        return@memScoped
+                    }
 
-		val connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, null, null)
-		if (connection != null) {
-			g_dbus_connection_signal_unsubscribe(connection, subscriptionId)
-			g_object_unref(connection)
-		}
+                    val iter = alloc<GVariantIter>()
+                    g_variant_iter_init(iter.ptr, changedProperties.value)
 
-		stableRefPointer?.asStableRef<BatteryCallbacks>()?.dispose()
-	}
+                    val key = alloc<CPointerVar<ByteVar>>()
+                    val value = alloc<CPointerVar<GVariant>>()
+
+                    var state = -1
+                    var percentage = -1f
+
+                    while (
+                        g_variant_iter_next(
+                            iter.ptr,
+                            "{&sv}",
+                            key.ptr,
+                            value.ptr
+                        ) != 0
+                    ) {
+
+                        when (key.value?.toKString()) {
+                            "State" ->
+                                state = g_variant_get_uint32(value.value).toInt()
+
+                            "Percentage" ->
+                                percentage = g_variant_get_double(value.value).toFloat()
+                        }
+
+                        g_variant_unref(value.value)
+                    }
+
+                    g_variant_unref(changedProperties.value)
+
+                    when (state) {
+                        1 -> callbacks.onCharging(percentage.coerceAtLeast(0f))
+                        2 -> callbacks.onDisCharging(percentage.coerceAtLeast(0f))
+                        4 -> callbacks.onFull()
+                        else -> callbacks.onUnknown()
+                    }
+                }
+            },
+            callbackRef!!.asCPointer(),
+            null
+        )
+
+        subscription = SubscriptionHandle(
+            connection = connection,
+            subscriptionId = subscriptionId
+        )
+
+        return HANDLE
+    }
+
+    actual override fun unsubscribeToBatteryState(readHandle: Long) {
+
+        if (readHandle != HANDLE)
+            return
+
+        subscription?.let {
+            g_dbus_connection_signal_unsubscribe(
+                it.connection,
+                it.subscriptionId
+            )
+
+            g_object_unref(it.connection)
+        }
+
+        subscription = null
+
+        callbackRef?.dispose()
+        callbackRef = null
+    }
 }
