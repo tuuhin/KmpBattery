@@ -117,7 +117,7 @@ actual class NativePlatformBatteryManager actual constructor() : NativeBatteryMa
                 val err = errorVar.value?.pointed
                 logger.warn { "Failed to call D-Bus method: ${err?.message?.toKString()}" }
                 g_error_free(errorVar.value)
-                g_object_unref(proxy) // Don't forget to unref proxy before early exit
+                g_object_unref(proxy)
                 return false
             }
 
@@ -138,7 +138,7 @@ actual class NativePlatformBatteryManager actual constructor() : NativeBatteryMa
         }
 
         if (activeProfile != null) {
-            if (g_strcmp0(activeProfile, "power-saver") == 0) {
+            if (g_strcmp0(activeProfile.toKString(), "power-saver") == 0) {
                 isPowerSavingMode = true
             }
             g_free(activeProfile)
