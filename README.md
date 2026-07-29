@@ -7,21 +7,21 @@
   <img src="https://img.shields.io/badge/Platform-macOS-black?logo=apple" />
 </p>
 
-A Kotlin Multiplatform library example demonstrating how to read battery state across different platforms.
+A Kotlin Multiplatform library example demonstrating how to read battery state across different
+platforms.
 
 ### 📱 Supported Platforms
 
-With KMP we can target various platforms. The table below lists the platforms, their status, and relevant screenshots:
+With KMP we can target various platforms. The table below lists the platforms, their status, and
+relevant screenshots:
 
-| Platform | Screenshot                                       | Tested? |
-|:---------|:-------------------------------------------------|:--------|
+| Platform | Screenshot                                                                              | Tested? |
+|:---------|:----------------------------------------------------------------------------------------|:--------|
 | Android  | <img src="screenshots/kmp_battery_android.jpeg" width="400" alt="Android Screenshot" /> | Yes     |
 | Windows  | <img src="screenshots/kmp_battery_windows.png" width="400" alt="Windows Screenshot" />  | Yes     |
 | MacOS    | <img src="screenshots/kmp_battery_macos.jpeg" width="400" alt="MacOS Screenshot" />     | Yes     |
 | iOS      | <img src="screenshots/kmp_battery_ios.jpeg" width="400" alt="iOS Screenshot" />         | No      |
-| Linux    | N/A                                              | No      |
-
-> **Tip:** You can adjust the `width="200"` value up or down (e.g., `width="150"` or `width="250"`) to find the perfect size balance for your specific repository design.
+| Linux    | N/A                                                                                     | No      |
 
 ## 🚀 Features
 
@@ -47,7 +47,8 @@ With KMP we can target various platforms. The table below lists the platforms, t
 
 ## 🤝 Contributing
 
-Contributions are welcome! If you find a bug or have an improvement, please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines.
+Contributions are welcome! If you find a bug or have an improvement, please see
+the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines.
 
 ## 📜 License
 
@@ -55,4 +56,7 @@ This project is licensed under the MIT License. Please see the [LICENSE](LICENSE
 
 ## 🎯 Conclusion
 
-This project serves as a practice ground to explore the powerful features of Kotlin Multiplatform (KMP). It demonstrates how to interact with platform-specific native APIs from common Kotlin code, which is a core strength of KMP. Feel free to use this as a reference for your own multiplatform explorations.
+This project serves as a practice ground to explore the powerful features of Kotlin Multiplatform (
+KMP). It demonstrates how to interact with platform-specific native APIs from common Kotlin code,
+which is a core strength of KMP. Feel free to use this as a reference for your own multiplatform
+explorations.

@@ -1,0 +1,47 @@
+name: Build and Run Windows Pipeline
+
+on:
+  release:
+    types: [ created ]
+  workflow_dispatch:
+
+jobs:
+  windows-desktop-build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: "25"
+          distribution: "liberica"
+          cache: gradle
+
+      - name: Ensure ImageMagick is Installed
+        shell: pwsh
+        run: |
+          if (Get-Command magick -ErrorAction SilentlyContinue) {
+            Write-Host "ImageMagick is already installed."
+            magick -version
+          } else {
+            Write-Host "ImageMagick not found. Installing..."
+            choco install imagemagick -y
+          
+            $magickDir = Get-ChildItem "C:\Program Files" -Directory |
+              Where-Object { $_.Name -like "ImageMagick*" } |
+              Select-Object -First 1
+          
+            if ($magickDir) {
+              $env:Path += ";$($magickDir.FullName)"
+              & "$($magickDir.FullName)\magick.exe" -version
+            } else {
+              throw "ImageMagick installation failed."
+            }
+          }
+
+      - name: Build & Package Desktop App
+        shell: pwsh
+        run: .\gradlew.bat :sample:desktopApp:assemble :sample:terminalApp:assemble :sample:desktopApp:packageDistributionForCurrentOS
