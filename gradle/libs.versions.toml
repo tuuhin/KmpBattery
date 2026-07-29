@@ -1,5 +1,5 @@
 [versions]
-agp = "9.3.0"
+agp = "9.3.1"
 kotlin = "2.4.10"
 coreKtx = "1.19.0"
 kotlinx-coroutines = "1.11.0"
@@ -13,11 +13,11 @@ splashApiVersion = "1.2.0"
 koin-plugin = "1.0.2"
 androidx-lifecycle = "2.11.0"
 composeMultiplatform = "1.11.1"
-composeHotReload = "1.2.0-rc01"
+composeHotReload = "1.2.0"
 mordant = "3.0.2"
 turbineVersion = "1.2.1"
 nucleusnativeaccess = "0.6.0"
-nucleus = "2.1.1"
+nucleus = "2.1.10"
 catelog-update = "1.1.0"
 composeMultiplatform-material3 = "1.11.0-alpha07"
 androidx-tooling-version = "1.11.4"
@@ -85,3 +85,16 @@ nucleus-framework = { id = "dev.nucleusframework", version.ref = "nucleus" }
 nucleus-nna = { id = "dev.nucleusframework.nna", version.ref = "nucleusnativeaccess" }
 catelog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "catelog-update" }
 koin-compiler = { id = "io.insert-koin.compiler.plugin", version.ref = "koin-plugin" }
+
+[bundles]
+coroutines = ["kotlinx-coroutines-core", "kotlinx-coroutinesSwing"]
+mordant = ["mordant", "mordant-coroutines"]
+nucleus = ["nucleus-core-application", "nucleus-decorated-window-tao", "nucleus-decorated-window-material3", "nucleus-system-accent"]
+cmp-ui = ["cmp-runtime", "cmp-foundation", "cmp-ui", "cmp-material3", "cmp-components-resources"]
+cmp-tooling = ["cmp-ui-tooling", "cmp-ui-tooling-preview", "androidx-ui-tooling-preview"]
+cmp-testing = ["cmp-ui-test", "cmp-ui-test-junit"]
+koin-core = ["koin-core", "koin-annotations", "koin-viewmodel"]
+koin-android = ["koin-android", "koin-android-startup"]
+koin-compose = ["koin-compose", "koin-compose-viewmodel"]
+koin-testing = ["koin-test", "koin-test-junit"]
+lifecycle = ["androidx-lifecycle-viewmodelCompose", "androidx-lifecycle-runtimeCompose"]
