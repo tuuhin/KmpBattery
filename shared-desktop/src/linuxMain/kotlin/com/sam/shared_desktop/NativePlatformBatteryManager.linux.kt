@@ -53,7 +53,7 @@ private class BatteryCallbacks(
     val onFull: () -> Unit,
     val onCharging: (Float) -> Unit,
     val onDisCharging: (Float) -> Unit,
-    val onUnknown: () -> Unit
+    val onUnknown: () -> Unit,
 )
 
 @OptIn(ExperimentalAtomicApi::class)
@@ -125,7 +125,7 @@ actual class NativePlatformBatteryManager actual constructor() : NativeBatteryMa
             g_variant_get(
                 variant,
                 "(v)",
-                innerVariant.ptr
+                innerVariant.ptr,
             )
             g_variant_unref(variant)
             variant = innerVariant.value
@@ -156,14 +156,14 @@ actual class NativePlatformBatteryManager actual constructor() : NativeBatteryMa
 
         val level = FileReadingUtil.readFile(
             "${FileReadingUtil.POWER_INFO_DIR_LOCATION}/$battery/capacity",
-            3
+            3,
         )?.trim()?.toIntOrNull()
             ?: return NativeBatteryStateUnknown()
 
         val status =
             FileReadingUtil.readFile(
                 "${FileReadingUtil.POWER_INFO_DIR_LOCATION}/$battery/status",
-                32
+                32,
             )?.trim() ?: return NativeBatteryStateUnknown()
 
         if (level == 100)
@@ -181,7 +181,7 @@ actual class NativePlatformBatteryManager actual constructor() : NativeBatteryMa
         onCharging: (amount: Float) -> Unit,
         onDisCharging: (amount: Float) -> Unit,
         onUnknown: () -> Unit,
-        onBatteryNotFound: () -> Unit
+        onBatteryNotFound: () -> Unit,
     ): Long {
 
         val battery = FileReadingUtil.findPowerSupplyDevice(LinuxPowerClass.BATTERY)
@@ -192,20 +192,19 @@ actual class NativePlatformBatteryManager actual constructor() : NativeBatteryMa
 
         val batteryPath = "/org/freedesktop/UPower/devices/battery_$battery"
 
-        val connection =
-            g_bus_get_sync(G_BUS_TYPE_SYSTEM, null, null)
-                ?: run {
-                    onBatteryNotFound()
-                    return -1L
-                }
+        if (connection != null) g_object_unref(connection)
+        connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, null, null) ?: run {
+            onBatteryNotFound()
+            return -1L
+        }
 
         callbackRef = StableRef.create(
             BatteryCallbacks(
                 onFull = onFull,
                 onCharging = onCharging,
                 onDisCharging = onDisCharging,
-                onUnknown = onUnknown
-            )
+                onUnknown = onUnknown,
+            ),
         )
 
         val subscriptionId = g_dbus_connection_signal_subscribe(
@@ -218,25 +217,16 @@ actual class NativePlatformBatteryManager actual constructor() : NativeBatteryMa
             G_DBUS_SIGNAL_FLAGS_NONE,
             staticCFunction { _, _, _, _, _, parameters, userData ->
 
-                if (parameters == null || userData == null)
-                    return@staticCFunction
+                if (parameters == null || userData == null) return@staticCFunction
 
-                val callbacks = userData
-                    .asStableRef<BatteryCallbacks>()
-                    .get()
+                val callbacks = userData.asStableRef<BatteryCallbacks>().get()
 
                 memScoped {
 
                     val changedInterface = alloc<CPointerVar<ByteVar>>()
                     val changedProperties = alloc<CPointerVar<GVariant>>()
 
-                    g_variant_get(
-                        parameters,
-                        "(&s@a{sv}^as)",
-                        changedInterface.ptr,
-                        changedProperties.ptr,
-                        null
-                    )
+                    g_variant_get(parameters, "(&s@a{sv}^as)", changedInterface.ptr, changedProperties.ptr, null)
 
                     if (changedInterface.value?.toKString() != "org.freedesktop.UPower.Device") {
                         g_variant_unref(changedProperties.value)
@@ -249,41 +239,31 @@ actual class NativePlatformBatteryManager actual constructor() : NativeBatteryMa
                     val key = alloc<CPointerVar<ByteVar>>()
                     val value = alloc<CPointerVar<GVariant>>()
 
-                    var state = -1
-                    var percentage = -1f
+                    var state: Int? = null
+                    var percentage: Float? = null
 
-                    while (
-                        g_variant_iter_next(
-                            iter.ptr,
-                            "{&sv}",
-                            key.ptr,
-                            value.ptr
-                        ) != 0
-                    ) {
+                    while (g_variant_iter_next(iter.ptr, "{&sv}", key.ptr, value.ptr) != 0) {
 
                         when (key.value?.toKString()) {
-                            "State" ->
-                                state = g_variant_get_uint32(value.value).toInt()
-
-                            "Percentage" ->
-                                percentage = g_variant_get_double(value.value).toFloat()
+                            "State" -> state = g_variant_get_uint32(value.value).toInt()
+                            "Percentage" -> percentage = g_variant_get_double(value.value).toFloat()
                         }
-
                         g_variant_unref(value.value)
                     }
 
                     g_variant_unref(changedProperties.value)
 
+                    val pct = percentage ?: 0f
                     when (state) {
-                        1 -> callbacks.onCharging(percentage.coerceAtLeast(0f))
-                        2 -> callbacks.onDisCharging(percentage.coerceAtLeast(0f))
+                        1 -> callbacks.onCharging(pct.coerceAtLeast(0f))
+                        2 -> callbacks.onDisCharging(pct.coerceAtLeast(0f))
                         4 -> callbacks.onFull()
                         else -> callbacks.onUnknown()
                     }
                 }
             },
             callbackRef!!.asCPointer(),
-            null
+            null,
         )
 
         return subscriptionId.toLong()
@@ -297,6 +277,7 @@ actual class NativePlatformBatteryManager actual constructor() : NativeBatteryMa
         val conn = connection ?: return
         g_dbus_connection_signal_unsubscribe(conn, subId)
         g_object_unref(conn)
+        connection = null
 
         callbackRef?.dispose()
         callbackRef = null
@@ -304,6 +285,6 @@ actual class NativePlatformBatteryManager actual constructor() : NativeBatteryMa
 
     companion object {
         private var callbackRef: StableRef<BatteryCallbacks>? = null
-        private val connection: CPointer<GDBusConnection>? = null
+        private var connection: CPointer<GDBusConnection>? = null
     }
 }
