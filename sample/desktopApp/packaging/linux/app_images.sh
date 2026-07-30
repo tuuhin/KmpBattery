@@ -52,8 +52,13 @@ if [ -z "$INPUT_SVG" ] || [ ! -f "$INPUT_SVG" ]; then
     exit 1
 fi
 
-if ! command -v magick &> /dev/null; then
-    echo "Error: ImageMagick ('magick') not found in PATH."
+# Detect ImageMagick CLI (v7 uses 'magick', v6 uses 'convert')
+if command -v magick &> /dev/null; then
+    magick() { command magick "$@"; }
+elif command -v convert &> /dev/null; then
+    magick() { command convert "$@"; }
+else
+    echo "Error: ImageMagick ('magick' or 'convert') not found in PATH."
     exit 1
 fi
 
