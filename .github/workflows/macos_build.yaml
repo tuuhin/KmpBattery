@@ -21,6 +21,7 @@ jobs:
       - run: chmod +x ./gradlew
       - name: Run xcode build for ios project
         run: |
+          export PATH="$JAVA_HOME/bin:$PATH"
           xcodebuild build \
             -project sample/iosAppCmp/iosApp.xcodeproj \
             -scheme iosApp \

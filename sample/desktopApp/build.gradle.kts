@@ -1,6 +1,7 @@
 import dev.nucleusframework.desktop.application.dsl.CompressionLevel
 import dev.nucleusframework.desktop.application.dsl.DmgContentType
 import dev.nucleusframework.desktop.application.dsl.TargetFormat
+import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.compose.resources.ResourcesExtension
 import java.util.Properties
 
@@ -84,78 +85,87 @@ nucleus.application {
         cleanupNativeLibs = true
 
         val packagingRoot = project.layout.projectDirectory.dir("packaging")
-        windows {
-            iconFile.set(packagingRoot.file("windows/kmp_battery.ico"))
-            upgradeUuid =
-                commonProperties.getProperty("WINDOWS_UPGRADE_UUID", null)?.ifEmpty { null }
-            console = false
-            perUserInstall = true
-            dirChooser = true
+        val os = OperatingSystem.current()
 
-            appx {
+        when {
+            os.isWindows -> windows {
+                iconFile.set(packagingRoot.file("windows/kmp_battery.ico"))
+                upgradeUuid =
+                    commonProperties.getProperty("WINDOWS_UPGRADE_UUID", null)?.ifEmpty { null }
+                console = false
+                perUserInstall = true
+                dirChooser = true
 
-                applicationId = commonProperties.getProperty("APP_PACKAGE_NAME")
-                publisherDisplayName = commonProperties.getProperty("APP_VENDOR")
-                displayName = commonProperties.getProperty("APP_NAME")
-                publisher = commonProperties.getProperty("WINDOWS_APPX_PUBLISHER")
-                identityName = commonProperties.getProperty("APP_PACKAGE_NAME")
+                appx {
 
-                languages = listOf("en-US")
-                backgroundColor = commonProperties.getProperty("APP_INSTALLER_BACKGROUND")
-                showNameOnTiles = true
-                addAutoLaunchExtension = false
-                setBuildNumber = true
+                    applicationId = commonProperties.getProperty("APP_PACKAGE_NAME")
+                    publisherDisplayName = commonProperties.getProperty("APP_VENDOR")
+                    displayName = commonProperties.getProperty("APP_NAME")
+                    publisher = commonProperties.getProperty("WINDOWS_APPX_PUBLISHER")
+                    identityName = commonProperties.getProperty("APP_PACKAGE_NAME")
 
-                storeLogo.set(packagingRoot.file("windows/appx/StoreLogo.png"))
-                square44x44Logo.set(packagingRoot.file("windows/appx/Square44x44Logo.png"))
-                square150x150Logo.set(packagingRoot.file("windows/appx/Square150x150Logo.png"))
-                wide310x150Logo.set(packagingRoot.file("windows/appx/Wide310x150Logo.png"))
+                    languages = listOf("en-US")
+                    backgroundColor = commonProperties.getProperty("APP_INSTALLER_BACKGROUND")
+                    showNameOnTiles = true
+                    addAutoLaunchExtension = false
+                    setBuildNumber = true
+
+                    storeLogo.set(packagingRoot.file("windows/appx/StoreLogo.png"))
+                    square44x44Logo.set(packagingRoot.file("windows/appx/Square44x44Logo.png"))
+                    square150x150Logo.set(packagingRoot.file("windows/appx/Square150x150Logo.png"))
+                    wide310x150Logo.set(packagingRoot.file("windows/appx/Wide310x150Logo.png"))
+                }
             }
-        }
 
-        macOS {
-            bundleID = commonProperties.getProperty("APP_PACKAGE_NAME")
-            dockName = commonProperties.getProperty("APP_NAME")
+            os.isMacOsX -> macOS {
+                bundleID = commonProperties.getProperty("APP_PACKAGE_NAME")
+                dockName = commonProperties.getProperty("APP_NAME")
 
-            minimumSystemVersion = "12.0"
-            macOsSdkVersion = "26.0"
+                minimumSystemVersion = "12.0"
+                macOsSdkVersion = "26.0"
 
-            appCategory = "public.app-category.utilities"
+                appCategory = "public.app-category.utilities"
 
-            layeredIconDir.set(packagingRoot.dir("macos/kmp_battery.icon"))
-            iconFile.set(packagingRoot.file("macos/kmp_battery.icns"))
+                layeredIconDir.set(packagingRoot.dir("macos/kmp_battery.icon"))
+                iconFile.set(packagingRoot.file("macos/kmp_battery.icns"))
 
-            entitlementsFile.set(packagingRoot.file("macos/entitlements.plist"))
-            runtimeEntitlementsFile.set(packagingRoot.file("macos/runtime-entitlements.plist"))
+                entitlementsFile.set(packagingRoot.file("macos/entitlements.plist"))
+                runtimeEntitlementsFile.set(packagingRoot.file("macos/runtime-entitlements.plist"))
 
-            dmg {
-                title = $$"${productName} ${version}"
-                iconSize = 128
-                window { x = 400; y = 100; width = 540; height = 380 }
-                backgroundColor =
-                    commonProperties.getProperty("APP_INSTALLER_BACKGROUND", "#C4F18C")
-                content(x = 130, y = 220, type = DmgContentType.File, name = "MyApp.app")
-                content(x = 410, y = 220, type = DmgContentType.Link, path = "/Applications")
+                dmg {
+                    title = $$"${productName} ${version}"
+                    iconSize = 128
+                    window { x = 400; y = 100; width = 540; height = 380 }
+                    backgroundColor =
+                        commonProperties.getProperty("APP_INSTALLER_BACKGROUND", "#C4F18C")
+                    content(x = 130, y = 220, type = DmgContentType.File, name = "MyApp.app")
+                    content(x = 410, y = 220, type = DmgContentType.Link, path = "/Applications")
+                }
             }
-        }
 
-        linux {
-            iconFile.set(packagingRoot.file("linux/app.png"))
-            packageName = commonProperties.getProperty("APP_PACKAGE_NAME")
-            shortcut = true
-            appCategory = "Utility"
-            menuGroup = "Development"
-            debMaintainer = commonProperties.getProperty("APP_VENDOR")
-            rpmLicenseType = "MIT"
+            os.isLinux -> linux {
+                iconFile.set(packagingRoot.file("linux/app.png"))
+                packageName = commonProperties.getProperty("APP_PACKAGE_NAME")
+                shortcut = true
+                appCategory = "Utility"
+                menuGroup = "Development"
+                debMaintainer = commonProperties.getProperty("APP_VENDOR")
+                rpmLicenseType = "MIT"
+                homepage = "https://github.com/tuuhin/KMPBattery"
+                vendor = commonProperties.getProperty("APP_VENDOR")
+                description = commonProperties.getProperty("APP_DESCRIPTION")
 
-            // --- Debian / Ubuntu (.deb) ---
-            debDepends = listOf(
-                "libfuse2", "libgtk-3-0", "libasound2", "libglib2.0-0", "libblkid1", "libmount1",
-            )
-            // --- RHEL / Fedora / CentOS (.rpm) ---
-            rpmRequires = listOf("gtk3", "libX11", "alsa-lib", "glib2", "libblkid", "libmount")
-            // --- Arch Linux (.pacman) ---
-            pacmanDepends = listOf("gtk3", "libx11", "alsa-lib", "glib2", "util-linux-libs")
+                // --- Debian / Ubuntu (.deb) ---
+                debDepends = listOf(
+                    "libfuse2", "libgtk-3-0", "libasound2", "libglib2.0-0", "libblkid1", "libmount1",
+                )
+                // --- RHEL / Fedora / CentOS (.rpm) ---
+                rpmRequires = listOf("gtk3", "libX11", "alsa-lib", "glib2", "libblkid", "libmount")
+                // --- Arch Linux (.pacman) ---
+                pacmanDepends = listOf("gtk3", "libx11", "alsa-lib", "glib2", "util-linux-libs")
+            }
+
+            else -> throw GradleException("Invalid desktop target")
         }
     }
 }
@@ -192,9 +202,7 @@ val generateMacosAppIcns = tasks.register<Exec>("genAppIconMacos") {
         "-c", bgColor, "-r", "22", "-f", "85",
     )
 
-    onlyIf {
-        org.gradle.internal.os.OperatingSystem.current().isMacOsX
-    }
+    onlyIf { OperatingSystem.current().isMacOsX }
 }
 
 val generateWindowsAppIcon = tasks.register<Exec>("genAppIconWindos") {
@@ -216,9 +224,7 @@ val generateWindowsAppIcon = tasks.register<Exec>("genAppIconWindos") {
         "cmd", "/c", script.absolutePath, icon.absolutePath, outputDir.absolutePath,
         "-c", bgColor, "-r", "12",
     )
-    onlyIf {
-        org.gradle.internal.os.OperatingSystem.current().isWindows
-    }
+    onlyIf { OperatingSystem.current().isWindows }
 }
 
 val generateLinuxIconFile = tasks.register<Exec>("genAppIconLinux") {
@@ -233,16 +239,13 @@ val generateLinuxIconFile = tasks.register<Exec>("genAppIconLinux") {
 
     val script = project.layout.projectDirectory.file("packaging/linux/app_images.sh").asFile
     val bgColor = commonProperties.getProperty("APP_INSTALLER_BACKGROUND", "#C4F18C")
-    val outputDir = project.layout.projectDirectory.dir("packaging/windows/appx").asFile
 
     workingDir(project.layout.projectDirectory.file("packaging"))
     commandLine(
         "bash", script.absolutePath, icon.absolutePath,
         "-c", bgColor, "-r", "22", "-f", "85",
     )
-    onlyIf {
-        org.gradle.internal.os.OperatingSystem.current().isLinux
-    }
+    onlyIf { OperatingSystem.current().isLinux }
 }
 
 tasks.matching { task ->
@@ -251,7 +254,7 @@ tasks.matching { task ->
         taskName.startsWith("createDist") ||
         taskName.startsWith("compile")
 }.configureEach {
-    val os = org.gradle.internal.os.OperatingSystem.current()
+    val os = OperatingSystem.current()
     when {
         os.isWindows -> dependsOn(generateWindowsAppIcon)
         os.isLinux -> dependsOn(generateLinuxIconFile)
