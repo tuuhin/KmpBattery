@@ -3,3 +3,4 @@
 /packaging/windows/*.ico
 /packaging/macos/*.icns
 /packaging/macos/*.icon
+/packaging/linux/*.png
