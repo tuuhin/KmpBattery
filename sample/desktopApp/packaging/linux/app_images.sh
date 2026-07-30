@@ -55,8 +55,10 @@ fi
 # Detect ImageMagick CLI (v7 uses 'magick', v6 uses 'convert')
 if command -v magick &> /dev/null; then
     magick() { command magick "$@"; }
+    ALPHA_COMPOSE="CopyAlpha"
 elif command -v convert &> /dev/null; then
     magick() { command convert "$@"; }
+    ALPHA_COMPOSE="CopyOpacity"
 else
     echo "Error: ImageMagick ('magick' or 'convert') not found in PATH."
     exit 1
@@ -144,7 +146,7 @@ if [ "$ROUND_PERCENT" -ne 0 ] && [ "$BG_COLOR" != "none" ]; then
            -draw "fill white roundrectangle 0,0 ${CANVAS_SIZE},${CANVAS_SIZE} ${RAD_PX},${RAD_PX}" \
         \) \
         -alpha off \
-        -compose CopyAlpha \
+        -compose "$ALPHA_COMPOSE" \
         -composite \
         -colorspace sRGB \
         "$OUTPUT_PNG"
