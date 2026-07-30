@@ -15,13 +15,13 @@ platforms.
 With KMP we can target various platforms. The table below lists the platforms, their status, and
 relevant screenshots:
 
-| Platform | Screenshot                                                                              | Tested? |
-|:---------|:----------------------------------------------------------------------------------------|:--------|
-| Android  | <img src="screenshots/kmp_battery_android.jpeg" width="400" alt="Android Screenshot" /> | Yes     |
-| Windows  | <img src="screenshots/kmp_battery_windows.png" width="400" alt="Windows Screenshot" />  | Yes     |
-| MacOS    | <img src="screenshots/kmp_battery_macos.jpeg" width="400" alt="MacOS Screenshot" />     | Yes     |
-| iOS      | <img src="screenshots/kmp_battery_ios.jpeg" width="400" alt="iOS Screenshot" />         | No      |
-| Linux    | N/A                                                                                     | No      |
+| Platform | Screenshot                                                                              | Tested?  |
+|:---------|:----------------------------------------------------------------------------------------|:---------|
+| Android  | <img src="screenshots/kmp_battery_android.jpeg" width="400" alt="Android Screenshot" /> | Yes      |
+| Windows  | <img src="screenshots/kmp_battery_windows.png" width="400" alt="Windows Screenshot" />  | Yes      |
+| MacOS    | <img src="screenshots/kmp_battery_macos.jpeg" width="400" alt="MacOS Screenshot" />     | Yes      |
+| iOS      | <img src="screenshots/kmp_battery_ios.jpeg" width="400" alt="iOS Screenshot" />         | No       |
+| Linux    | N/A                                                                                     | Unstable |
 
 ## 🚀 Features
 
